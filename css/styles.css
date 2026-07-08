@@ -671,6 +671,45 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .legal-table tbody td:first-child { font-weight: 700; color: var(--ink); }
 .legal-contact { text-align: center; color: var(--muted); font-size: 14px; margin-top: 26px; }
 
+/* ===================================================
+   لوحة الأدمن
+   =================================================== */
+.admin { padding: 32px 0 64px; }
+.admin__title { font-size: 26px; font-weight: 900; margin-bottom: 22px; }
+.astats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 26px; }
+.astat { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 18px; text-align: center; box-shadow: var(--shadow-sm); }
+.astat strong { display: block; font-size: 26px; font-weight: 900; color: var(--primary-dark); }
+.astat span { font-size: 13px; color: var(--muted); }
+.acard { background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 22px; margin-bottom: 20px; box-shadow: var(--shadow-sm); }
+.acard__title { font-size: 19px; font-weight: 900; margin-bottom: 16px; }
+.acompose { display: flex; gap: 10px; margin-bottom: 16px; align-items: flex-start; }
+.acompose textarea { flex: 1; font-family: inherit; font-size: 15px; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 12px; outline: none; resize: vertical; background: var(--bg); }
+.acompose textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-soft); }
+.alist { display: flex; flex-direction: column; gap: 10px; }
+.arow { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); }
+.arow__main { flex: 1; display: flex; align-items: center; gap: 12px; min-width: 0; }
+.arow__emoji { font-size: 26px; flex-shrink: 0; }
+.arow__main b { font-size: 15px; display: block; }
+.arow__main small { font-size: 12.5px; color: var(--muted); }
+.averify { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--ink-2); white-space: nowrap; cursor: pointer; }
+.averify input { width: 18px; height: 18px; accent-color: var(--accent); }
+.averified { color: var(--accent); font-size: 12px; font-weight: 800; }
+.abtn { padding: 8px 14px; border-radius: 10px; font-weight: 700; font-size: 13px; background: var(--soft); color: var(--ink-2); white-space: nowrap; transition: all .15s; }
+.abtn--danger { background: #FEECEC; color: #C0392B; }
+.abtn--danger:hover { background: #F5C6C6; }
+.aempty { text-align: center; color: var(--muted); padding: 20px; }
+
+/* شريط إعلانات الأدمن في لوحة الأسرة */
+.ann-banner { display: flex; flex-direction: column; gap: 8px; margin-bottom: 22px; }
+.ann-item { background: var(--primary-soft); color: var(--primary-dark); border: 1px solid #F5D3B8; border-radius: 14px; padding: 12px 16px; font-weight: 700; font-size: 14px; }
+
+@media (max-width: 640px) {
+  .astats { grid-template-columns: 1fr 1fr; }
+  .acompose { flex-direction: column; }
+  .acompose .btn { width: 100%; }
+  .arow { flex-wrap: wrap; }
+}
+
 @media (max-width: 520px) { .legal-section { padding: 22px 18px; } }
 
 @media (max-width: 900px) {

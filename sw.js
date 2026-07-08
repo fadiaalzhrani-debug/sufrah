@@ -1,15 +1,17 @@
 /* سُفرة — Service Worker (يعمل بدون إنترنت بعد أول فتح) */
-const CACHE = 'sufrah-v4';
+const CACHE = 'sufrah-v5';
 const ASSETS = [
   './',
   './index.html',
   './partner.html',
   './terms.html',
+  './admin.html',
   './css/styles.css',
   './js/data.js',
   './js/store.js',
   './js/app.js',
   './js/partner.js',
+  './js/admin.js',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',

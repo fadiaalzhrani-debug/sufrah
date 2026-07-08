@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>سُفرة | لوحة الأدمن</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛠️</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Lalezar&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="partner-body">
+
+  <header class="header">
+    <div class="container header__inner header__inner--partner">
+      <a href="index.html" class="logo">
+        <span class="logo__mark">🍲</span>
+        <span class="logo__text">سُفرة</span>
+        <span class="logo__badge">لوحة الأدمن</span>
+      </a>
+      <div class="header__spacer"></div>
+      <a href="index.html" class="partner-link">🛒 الموقع</a>
+      <button class="ghost-btn" id="logoutBtn" type="button" hidden>خروج</button>
+    </div>
+  </header>
+
+  <!-- تسجيل دخول الأدمن -->
+  <main id="authView" class="auth">
+    <div class="container" style="max-width:460px">
+      <div class="auth__card">
+        <div style="padding:24px 24px 8px;text-align:center">
+          <div style="font-size:44px">🛠️</div>
+          <h1 style="font-size:24px;font-weight:900;margin-top:8px">لوحة تحكّم سُفرة</h1>
+          <p style="color:var(--muted);font-size:14px;margin-top:4px">دخول المالك فقط</p>
+        </div>
+        <form id="adminForm" class="form">
+          <div class="field">
+            <label>البريد الإلكتروني</label>
+            <input type="email" name="email" placeholder="name@example.com" required autocomplete="email" />
+          </div>
+          <div class="field">
+            <label>كلمة المرور</label>
+            <div class="pw-field">
+              <input type="password" name="password" placeholder="••••••••" required autocomplete="current-password" />
+              <button type="button" class="pw-toggle" aria-label="إظهار كلمة المرور">👁️</button>
+            </div>
+          </div>
+          <p class="form__error" id="authError" hidden></p>
+          <button type="submit" class="btn btn--primary btn--block" id="loginBtn">دخول</button>
+          <button type="button" class="ghost-btn" id="signupBtn" style="width:100%;margin-top:10px">أول مرة؟ إنشاء حساب الأدمن</button>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <!-- لوحة التحكم -->
+  <main id="adminView" class="admin" hidden>
+    <div class="container">
+      <h1 class="admin__title">لوحة تحكّم المنصة 🛠️</h1>
+
+      <div class="astats">
+        <div class="astat"><strong id="stKitchens">0</strong><span>مطبخ</span></div>
+        <div class="astat"><strong id="stVerified">0</strong><span>موثّق</span></div>
+        <div class="astat"><strong id="stDishes">0</strong><span>طبق</span></div>
+        <div class="astat"><strong id="stAnn">0</strong><span>إعلان</span></div>
+      </div>
+
+      <!-- إعلان للمطابخ -->
+      <section class="acard">
+        <h2 class="acard__title">📣 إرسال إعلان للمطابخ</h2>
+        <div class="acompose">
+          <textarea id="annText" rows="2" placeholder="اكتب رسالة تصل لكل الأسر المنتجة في لوحاتهم…"></textarea>
+          <button class="btn btn--primary" id="annSend">إرسال</button>
+        </div>
+        <div id="annList" class="alist"></div>
+      </section>
+
+      <!-- المطابخ -->
+      <section class="acard">
+        <h2 class="acard__title">👨‍👩‍👧 المطابخ (<span id="kCount">0</span>)</h2>
+        <div id="kitchensList" class="alist"></div>
+        <div id="kEmpty" class="aempty" hidden>ما فيه مطابخ مسجّلة بعد</div>
+      </section>
+
+      <!-- الأطباق -->
+      <section class="acard">
+        <h2 class="acard__title">🍽️ الأطباق (<span id="dCount">0</span>)</h2>
+        <div id="dishesList" class="alist"></div>
+        <div id="dEmpty" class="aempty" hidden>ما فيه أطباق بعد</div>
+      </section>
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="js/data.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/store.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

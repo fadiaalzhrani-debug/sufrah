@@ -124,6 +124,12 @@ const SUFRAH = (function () {
   }
   async function deleteDish(id) { await sb.from('dishes').delete().eq('id', id); await refresh(); }
 
+  /* ---------- إعلانات الأدمن ---------- */
+  async function getAnnouncements() {
+    const { data } = await sb.from('announcements').select('*').order('created_at', { ascending: false }).limit(5);
+    return data || [];
+  }
+
   /* ---------- سلة العميل (محلية على جهازه) ---------- */
   const CART_KEY = 'sufrah_cart_v1';
   const getCart = () => { try { return JSON.parse(localStorage.getItem(CART_KEY)) || {}; } catch { return {}; } };
@@ -132,7 +138,7 @@ const SUFRAH = (function () {
   return {
     init, onChange, refresh,
     allFamilies, allDishes, familyById, currentAccount, dishesByAccount,
-    register, login, logout, addDish, deleteDish,
+    register, login, logout, addDish, deleteDish, getAnnouncements,
     getCart, saveCart,
   };
 })();

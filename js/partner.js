@@ -11,6 +11,7 @@
   const EMOJIS = ['🍽️', '🍛', '🥘', '🍲', '🍰', '🧁', '🥐', '🫓', '🍖', '☕', '🥙', '🍚'];
   let pickedEmoji = '🍽️';
   let pickedImg = ''; // dataURL للصورة المرفوعة
+  const escHtml = (s) => String(s == null ? '' : s).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
 
   /* ---------- تنبيه ---------- */
   let toastTimer;
@@ -76,6 +77,14 @@
     // ضبط تصنيف المطبخ الافتراضي في نموذج الطبق
     $('#dishCuisine').value = account.cuisine;
     renderMyDishes(account);
+    // إعلانات الأدمن
+    SUFRAH.getAnnouncements().then((list) => {
+      const b = $('#annBanner');
+      if (list && list.length) {
+        b.innerHTML = list.map((a) => `<div class="ann-item">📣 ${escHtml(a.message)}</div>`).join('');
+        b.hidden = false;
+      } else { b.hidden = true; }
+    });
   }
 
   /* ---------- أطباق مطبخي ---------- */
