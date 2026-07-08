@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>سُفرة للأسر المنتجة | افتح مطبخك</title>
+  <meta name="description" content="سجّل أسرتك المنتجة في سُفرة وأضِف أطباقك ووصّلها لآلاف العملاء." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍳</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Lalezar&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#E8590C" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="سُفرة" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+</head>
+<body class="partner-body">
+
+  <!-- ===== الهيدر ===== -->
+  <header class="header">
+    <div class="container header__inner header__inner--partner">
+      <a href="index.html" class="logo">
+        <span class="logo__mark">🍲</span>
+        <span class="logo__text">سُفرة</span>
+        <span class="logo__badge">للأسر المنتجة</span>
+      </a>
+      <div class="header__spacer"></div>
+      <a href="index.html" class="partner-link">🛒 تصفّح كعميل</a>
+      <button class="ghost-btn" id="logoutBtn" type="button" hidden>تسجيل الخروج</button>
+    </div>
+  </header>
+
+  <!-- ===== شاشة التسجيل / الدخول ===== -->
+  <main id="authView" class="auth">
+    <div class="container auth__inner">
+      <div class="auth__intro">
+        <span class="hero__badge">👩‍🍳 انضمّي كأسرة منتجة</span>
+        <h1 class="hero__title">افتح مطبخك على <span class="hl">سُفرة</span> 🍳</h1>
+        <p class="hero__sub">سجّل أسرتك بخطوات بسيطة، أضِف أطباقك بصورها وأسعارها، وابدأ استقبال الطلبات من آلاف العملاء.</p>
+        <ul class="perks">
+          <li><span>✅</span> بدون رسوم اشتراك</li>
+          <li><span>📸</span> أضِف طبقك بصورة وسعر في ثوانٍ</li>
+          <li><span>🚚</span> اختر طريقة التوصيل المناسبة لك</li>
+          <li><span>💚</span> وصّل أكل بيتك لكل حي</li>
+        </ul>
+      </div>
+
+      <div class="auth__card">
+        <div class="tabs">
+          <button class="tab is-active" data-tab="register">تسجيل حساب جديد</button>
+          <button class="tab" data-tab="login">تسجيل الدخول</button>
+        </div>
+
+        <!-- تسجيل جديد -->
+        <form id="registerForm" class="form">
+          <div class="field">
+            <label>اسم المطبخ / الأسرة</label>
+            <input type="text" name="kitchenName" placeholder="مثال: مطبخ أم فيصل" required />
+          </div>
+          <div class="field">
+            <label>نوع المطبخ</label>
+            <div class="select-wrap"><select name="cuisine" id="regCuisine"></select></div>
+          </div>
+          <div class="field">
+            <label>أيقونة مطبخك</label>
+            <div class="emoji-pick" id="emojiPick"></div>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label>المدينة</label>
+              <input type="text" name="city" placeholder="الرياض" />
+            </div>
+            <div class="field">
+              <label>الجوال (اختياري)</label>
+              <input type="tel" name="phone" placeholder="05xxxxxxxx" />
+            </div>
+          </div>
+          <hr class="sep" />
+          <div class="field">
+            <label>اسم المستخدم</label>
+            <input type="text" name="username" placeholder="اسم الدخول" required autocomplete="username" />
+          </div>
+          <div class="field">
+            <label>كلمة المرور</label>
+            <div class="pw-field">
+              <input type="password" name="password" placeholder="••••••••" required autocomplete="new-password" />
+              <button type="button" class="pw-toggle" aria-label="إظهار كلمة المرور">👁️</button>
+            </div>
+          </div>
+
+          <div class="agree" id="agreeBox">
+            <div class="agree__title">🛡️ الإقرارات النظامية (إلزامية)</div>
+            <label class="agree__item">
+              <input type="checkbox" class="agree-check" />
+              <span class="agree__box"></span>
+              <span>أُقرّ بأن عمري <strong>١٨ سنة فأكثر</strong> وأتمتّع بالأهلية النظامية.</span>
+            </label>
+            <label class="agree__item">
+              <input type="checkbox" class="agree-check" />
+              <span class="agree__box"></span>
+              <span>أوافق على <a href="terms.html#terms" target="_blank" rel="noopener">شروط الاستخدام</a> و<a href="terms.html#privacy" target="_blank" rel="noopener">سياسة الخصوصية</a>.</span>
+            </label>
+            <label class="agree__item">
+              <input type="checkbox" class="agree-check" />
+              <span class="agree__box"></span>
+              <span>أتعهّد بالالتزام بالأنظمة السعودية للأسر المنتجة وسلامة الغذاء (تصريح/وثيقة عمل حر، الاشتراطات الصحية، شهادة صحية لمن يُعِدّ الطعام). <a href="terms.html#vendor" target="_blank" rel="noopener">التفاصيل</a></span>
+            </label>
+            <label class="agree__item">
+              <input type="checkbox" class="agree-check" />
+              <span class="agree__box"></span>
+              <span>أتحمّل كامل مسؤولية جودة وسلامة منتجاتي ودقّة بياناتي وأسعاري.</span>
+            </label>
+          </div>
+
+          <p class="form__error" id="regError" hidden></p>
+          <button type="submit" class="btn btn--primary btn--block" id="registerSubmit" disabled>🚀 افتح مطبخك</button>
+        </form>
+
+        <!-- دخول -->
+        <form id="loginForm" class="form" hidden>
+          <div class="field">
+            <label>اسم المستخدم</label>
+            <input type="text" name="username" placeholder="اسم الدخول" required autocomplete="username" />
+          </div>
+          <div class="field">
+            <label>كلمة المرور</label>
+            <div class="pw-field">
+              <input type="password" name="password" placeholder="••••••••" required autocomplete="current-password" />
+              <button type="button" class="pw-toggle" aria-label="إظهار كلمة المرور">👁️</button>
+            </div>
+          </div>
+          <p class="form__error" id="loginError" hidden></p>
+          <button type="submit" class="btn btn--primary btn--block">دخول</button>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===== لوحة تحكم الأسرة ===== -->
+  <main id="dashView" class="dash" hidden>
+    <div class="container">
+      <div class="dash__welcome">
+        <div class="dash__avatar" id="dashAvatar">🍽️</div>
+        <div>
+          <h1 id="dashName">مطبخي</h1>
+          <p id="dashMeta" class="dash__meta">—</p>
+        </div>
+        <button class="btn btn--primary dash__add" id="openAddBtn">➕ أضِف طبق جديد</button>
+      </div>
+
+      <div class="dash__stats">
+        <div class="dstat"><strong id="statDishes">0</strong><span>طبق في مطبخك</span></div>
+        <div class="dstat"><strong id="statAvg">0 ر.س</strong><span>متوسط السعر</span></div>
+        <div class="dstat"><strong>⭐ 5.0</strong><span>تقييم مطبخك</span></div>
+        <div class="dstat"><strong>مفتوح</strong><span>حالة المطبخ</span></div>
+      </div>
+
+      <div class="dash__head">
+        <h2>أطباق مطبخك</h2>
+        <p class="section__desc">هذي الأطباق تظهر مباشرة للعملاء في الصفحة الرئيسية</p>
+      </div>
+      <div class="dishes" id="myDishes"></div>
+      <div class="empty" id="myEmpty">
+        <span>🍳</span>
+        <p>ما أضفتِ أطباق بعد… اضغط «أضِف طبق جديد» وابدأ!</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===== نافذة إضافة طبق ===== -->
+  <div class="overlay" id="addOverlay"></div>
+  <div class="modal" id="addModal" aria-label="إضافة طبق">
+    <div class="modal__head">
+      <h3>➕ إضافة طبق جديد</h3>
+      <button class="drawer__close" id="addClose" aria-label="إغلاق">✕</button>
+    </div>
+    <form id="dishForm" class="modal__body form">
+      <div class="field">
+        <label>صورة الطبق</label>
+        <label class="uploader" id="uploader">
+          <input type="file" id="dishImage" accept="image/*" hidden />
+          <div class="uploader__placeholder" id="uploaderPh">
+            <span>📷</span>
+            <p>اضغط لاختيار صورة الطبق</p>
+          </div>
+          <img id="imgPreview" class="uploader__preview" hidden alt="معاينة" />
+        </label>
+      </div>
+      <div class="field">
+        <label>اسم الطبق</label>
+        <input type="text" name="name" placeholder="مثال: كبسة دجاج" required />
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>السعر (ر.س)</label>
+          <input type="number" name="price" min="1" step="1" placeholder="35" required />
+        </div>
+        <div class="field">
+          <label>التصنيف</label>
+          <div class="select-wrap"><select name="cat" id="dishCat"></select></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>نوع المطبخ</label>
+        <div class="select-wrap"><select name="cuisine" id="dishCuisine"></select></div>
+      </div>
+      <div class="field">
+        <label>وصف الطبق</label>
+        <textarea name="desc" rows="2" placeholder="مكوّنات بسيطة عن الطبق…"></textarea>
+      </div>
+      <div class="field">
+        <label>طرق التوصيل المتاحة</label>
+        <div class="delivery-checks" id="deliveryChecks"></div>
+      </div>
+      <button type="submit" class="btn btn--primary btn--block">💾 حفظ الطبق</button>
+    </form>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/partner.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
+  </script>
+</body>
+</html>

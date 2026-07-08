@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>سُفرة | أكل بيت من الأسر المنتجة يوصل لباب بيتك</title>
+  <meta name="description" content="سُفرة منصة توصيل أكل بيتي من الأسر المنتجة — أطباق شعبية وحلويات ومعجنات ومؤونة توصل لباب بيتك." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍲</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Lalezar&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#E8590C" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="سُفرة" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+</head>
+<body>
+
+  <!-- ===== شريط التوصيل العلوي ===== -->
+  <div class="topstrip">
+    <span>🚚 توصيل مجاني لأول طلب</span>
+    <span class="dot">•</span>
+    <span>🏠 أكل بيت ١٠٠٪ من أسر منتجة موثّقة</span>
+  </div>
+
+  <!-- ===== الهيدر ===== -->
+  <header class="header" id="header">
+    <div class="container header__inner">
+      <a href="#" class="logo">
+        <span class="logo__mark">🍲</span>
+        <span class="logo__text">سُفرة</span>
+      </a>
+
+      <button class="location" type="button">
+        <span class="location__icon">📍</span>
+        <span class="location__label">
+          <small>التوصيل إلى</small>
+          <strong>الرياض — حي النرجس</strong>
+        </span>
+        <span class="location__chev">▾</span>
+      </button>
+
+      <div class="search">
+        <span class="search__icon">🔍</span>
+        <input type="search" id="searchInput" placeholder="ابحث عن طبق أو أسرة منتجة…" aria-label="بحث" />
+      </div>
+
+      <a href="partner.html" class="partner-link">🍳 سجّل مطبخك</a>
+
+      <button class="cart-btn" id="cartBtn" type="button" aria-label="السلة">
+        <span class="cart-btn__icon">🛒</span>
+        <span class="cart-btn__count" id="cartCount">0</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== الواجهة الرئيسية ===== -->
+  <section class="hero">
+    <div class="container hero__inner">
+      <div class="hero__copy">
+        <span class="hero__badge">✨ منصة الأسر المنتجة الأولى</span>
+        <h1 class="hero__title">
+          أكل بيت من <span class="hl">الأسر المنتجة</span><br />
+          يوصل لباب بيتك 🏡
+        </h1>
+        <p class="hero__sub">
+          كبسة، معجنات، حلويات، ومؤونة — محضّرة بحب في بيوت أسر سعودية منتجة.
+          ادعم أسرة وطلباتك توصلك طازجة.
+        </p>
+
+        <div class="hero__search">
+          <span class="search__icon">🔍</span>
+          <input type="search" id="heroSearch" placeholder="وش تشتهي اليوم؟ كبسة، كنافة، معمول…" aria-label="بحث" />
+          <button class="btn btn--primary" id="heroSearchBtn">اطلب الآن</button>
+        </div>
+
+        <div class="hero__stats">
+          <div class="stat"><strong>+٤٠</strong><span>أسرة منتجة</span></div>
+          <div class="stat"><strong>+٢٠٠</strong><span>طبق بيتي</span></div>
+          <div class="stat"><strong>٤٥ د</strong><span>متوسط التوصيل</span></div>
+          <div class="stat"><strong>٤.٩ ★</strong><span>تقييم العملاء</span></div>
+        </div>
+      </div>
+
+      <div class="hero__art">
+        <div class="float-card float-card--1"><span>🍛</span><small>كبسة دجاج</small></div>
+        <div class="float-card float-card--2"><span>🍰</span><small>كنافة طازجة</small></div>
+        <div class="float-card float-card--3"><span>🍪</span><small>معمول تمر</small></div>
+        <div class="hero__plate">🥘</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== التصنيفات والمطابخ ===== -->
+  <section class="section" id="menu">
+    <div class="container">
+      <div class="section__head">
+        <div>
+          <h2 class="section__title">تصفّح واطلب 🍽️</h2>
+          <p class="section__desc">اختر نوع المطبخ ثم التصنيف اللي يشتهيه بالك</p>
+        </div>
+      </div>
+      <div class="filter-label">🌍 المطبخ</div>
+      <div class="chips" id="cuisineChips"><!-- تُبنى بالجافاسكربت --></div>
+      <div class="filter-label filter-label--gap">🍲 التصنيف</div>
+      <div class="chips" id="categoryChips"><!-- تُبنى بالجافاسكربت --></div>
+    </div>
+  </section>
+
+  <!-- ===== الأسر المنتجة المميزة ===== -->
+  <section class="section section--soft">
+    <div class="container">
+      <div class="section__head">
+        <div>
+          <h2 class="section__title">أسر منتجة مميّزة ⭐</h2>
+          <p class="section__desc">أشهر الأسر تقييماً هذا الأسبوع</p>
+        </div>
+      </div>
+      <div class="families" id="familiesGrid"><!-- تُبنى بالجافاسكربت --></div>
+    </div>
+  </section>
+
+  <!-- ===== الأطباق ===== -->
+  <section class="section">
+    <div class="container">
+      <div class="section__head">
+        <div>
+          <h2 class="section__title" id="dishesTitle">الأطباق الأكثر طلباً 🔥</h2>
+          <p class="section__desc" id="dishesCount">جاري التحميل…</p>
+        </div>
+      </div>
+      <div class="dishes" id="dishesGrid"><!-- تُبنى بالجافاسكربت --></div>
+      <div class="empty" id="emptyState" hidden>
+        <span>😕</span>
+        <p>ما لقينا نتيجة… جرّب كلمة ثانية</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== كيف يعمل ===== -->
+  <section class="section section--soft">
+    <div class="container">
+      <div class="section__head section__head--center">
+        <h2 class="section__title">كيف تطلب من سُفرة؟</h2>
+        <p class="section__desc">٣ خطوات وطلبك في الطريق</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step__num">١</div>
+          <div class="step__icon">🔎</div>
+          <h3>اختر أسرتك أو طبقك</h3>
+          <p>تصفّح الأسر المنتجة والأطباق الطازجة القريبة منك.</p>
+        </div>
+        <div class="step">
+          <div class="step__num">٢</div>
+          <div class="step__icon">🛒</div>
+          <h3>أضِف للسلة واطلب</h3>
+          <p>حدد الكمية وأكمل الطلب بخطوات بسيطة وواضحة.</p>
+        </div>
+        <div class="step">
+          <div class="step__num">٣</div>
+          <div class="step__icon">🛵</div>
+          <h3>يوصلك لباب البيت</h3>
+          <p>الأسرة تجهّز طلبك بحب ومندوبنا يوصله لك طازج.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== لماذا سُفرة ===== -->
+  <section class="section">
+    <div class="container">
+      <div class="features">
+        <div class="feature"><span>🏠</span><h4>أكل بيت أصيل</h4><p>محضّر في بيوت، مو مطابخ مطاعم.</p></div>
+        <div class="feature"><span>💚</span><h4>تدعم أسرة</h4><p>كل طلب دخل مباشر لأسرة منتجة.</p></div>
+        <div class="feature"><span>✅</span><h4>أسر موثّقة</h4><p>نتأكد من النظافة والجودة قبل التوثيق.</p></div>
+        <div class="feature"><span>⏱️</span><h4>طازج وسريع</h4><p>يُحضّر بعد طلبك ويوصلك بأسرع وقت.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== دعوة الأسر للتسجيل ===== -->
+  <section class="section">
+    <div class="container">
+      <div class="cta">
+        <div class="cta__copy">
+          <h2>عندك أسرة منتجة؟ 👩‍🍳</h2>
+          <p>سجّل أسرتك في سُفرة ووصّل أكلك لآلاف العملاء بدون رسوم اشتراك. افتح مطبخك بخطوات بسيطة!</p>
+        </div>
+        <a class="btn btn--light" href="partner.html">🍳 افتح مطبخك الآن</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== الفوتر ===== -->
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="footer__col footer__col--brand">
+        <a href="#" class="logo logo--light">
+          <span class="logo__mark">🍲</span>
+          <span class="logo__text">سُفرة</span>
+        </a>
+        <p>منصة توصيل أكل بيتي من الأسر المنتجة. من بيتهم… لبيتك.</p>
+        <div class="socials">
+          <span>📸</span><span>🐦</span><span>▶️</span><span>💬</span>
+        </div>
+      </div>
+      <div class="footer__col">
+        <h5>سُفرة</h5>
+        <a href="#">من نحن</a>
+        <a href="#">الأسر المنتجة</a>
+        <a href="#">الوظائف</a>
+        <a href="#">تواصلي معنا</a>
+      </div>
+      <div class="footer__col">
+        <h5>المساعدة</h5>
+        <a href="#">الأسئلة الشائعة</a>
+        <a href="terms.html#terms">شروط الاستخدام</a>
+        <a href="terms.html#privacy">سياسة الخصوصية</a>
+        <a href="terms.html#vendor">التزامات الأسر المنتجة</a>
+      </div>
+      <div class="footer__col">
+        <h5>حمّلي التطبيق</h5>
+        <a href="#" class="store">🍎 App Store</a>
+        <a href="#" class="store">🤖 Google Play</a>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <div class="container">© ٢٠٢٦ سُفرة — جميع الحقوق محفوظة · صُنع بحب 🤍</div>
+    </div>
+  </footer>
+
+  <!-- ===== السلة (Drawer) ===== -->
+  <div class="overlay" id="overlay"></div>
+  <aside class="drawer" id="drawer" aria-label="سلة المشتريات">
+    <div class="drawer__head">
+      <h3>🛒 سلة المشتريات</h3>
+      <button class="drawer__close" id="drawerClose" aria-label="إغلاق">✕</button>
+    </div>
+    <div class="drawer__body" id="drawerBody"><!-- عناصر السلة --></div>
+    <div class="drawer__foot" id="drawerFoot">
+      <div class="summary">
+        <div class="summary__row"><span>المجموع</span><span id="subtotal">0 ر.س</span></div>
+        <div class="summary__row"><span>رسوم التوصيل</span><span id="delivery">0 ر.س</span></div>
+        <div class="summary__row summary__row--total"><span>الإجمالي</span><span id="total">0 ر.س</span></div>
+      </div>
+      <button class="btn btn--primary btn--block" id="checkoutBtn">إتمام الطلب</button>
+      <p class="checkout-note">بالضغط على «إتمام الطلب» فأنت توافق على
+        <a href="terms.html#terms" target="_blank" rel="noopener">شروط الاستخدام</a> و<a href="terms.html#privacy" target="_blank" rel="noopener">سياسة الخصوصية</a>.</p>
+    </div>
+  </aside>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
+  </script>
+</body>
+</html>
