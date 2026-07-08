@@ -18,6 +18,8 @@
   const dishesGrid = $('#dishesGrid');
   const dishesCount = $('#dishesCount');
   const emptyState = $('#emptyState');
+  const homeView = $('#homeView');
+  const kitchenView = $('#kitchenView');
   const drawer = $('#drawer');
   const overlay = $('#overlay');
   const drawerBody = $('#drawerBody');
@@ -87,16 +89,10 @@
     return `<div class="dish__thumb" style="background:${d.grad || DEFAULT_GRAD}">${''}`;
   }
 
-  function renderDishes() {
-    const list = getFilteredDishes();
-    dishesCount.textContent = `${list.length} طبق متاح`;
-    if (list.length === 0) { dishesGrid.innerHTML = ''; emptyState.hidden = false; return; }
-    emptyState.hidden = true;
-
-    dishesGrid.innerHTML = list.map((d) => {
-      const fam = SUFRAH.familyById(d.familyId);
-      const thumbInner = d.img ? '' : (d.emoji || '🍽️');
-      return `
+  function dishCard(d) {
+    const fam = SUFRAH.familyById(d.familyId);
+    const thumbInner = d.img ? '' : (d.emoji || '🍽️');
+    return `
       <article class="dish">
         ${dishThumb(d)}
           ${d.tag ? `<span class="dish__tag">${d.tag}</span>` : ''}
@@ -114,7 +110,48 @@
           </div>
         </div>
       </article>`;
-    }).join('');
+  }
+
+  function renderDishes() {
+    const list = getFilteredDishes();
+    dishesCount.textContent = `${list.length} طبق متاح`;
+    if (list.length === 0) { dishesGrid.innerHTML = ''; emptyState.hidden = false; return; }
+    emptyState.hidden = true;
+    dishesGrid.innerHTML = list.map(dishCard).join('');
+  }
+
+  /* ---------- صفحة المطبخ ---------- */
+  function openKitchen(id) {
+    const fam = SUFRAH.familyById(id); if (!fam) return;
+    const dishes = SUFRAH.allDishes().filter((d) => d.familyId === id);
+    const cz = (CUISINE_BY_ID[fam.cuisine] || {});
+    kitchenView.innerHTML = `
+      <div class="container">
+        <button class="kview__back" id="kviewBack">↩ رجوع للرئيسية</button>
+        <div class="kview__banner" style="background:${fam.grad || DEFAULT_GRAD}">
+          <div class="kview__avatar">${fam.cover || '🍽️'}</div>
+          <div class="kview__info">
+            <h2 class="kview__name">${fam.name}</h2>
+            <p class="kview__spec">${cz.name || ''}${fam.city ? ' · ' + fam.city : ''}</p>
+            <div class="kview__meta">
+              <span><span class="star">★</span> ${(fam.rating || 5).toFixed(1)}</span>
+              <span>🛵 ${fam.time || '٤٥ د'}</span>
+              <span>🏠 أسرة موثّقة</span>
+            </div>
+          </div>
+        </div>
+        <h3 class="kview__dtitle">أطباق المطبخ (${dishes.length})</h3>
+        ${dishes.length
+          ? `<div class="dishes">${dishes.map(dishCard).join('')}</div>`
+          : `<div class="empty"><span>🍳</span><p>هذا المطبخ ما أضاف أطباق بعد</p></div>`}
+      </div>`;
+    homeView.hidden = true;
+    kitchenView.hidden = false;
+    window.scrollTo(0, 0);
+  }
+  function closeKitchen() {
+    kitchenView.hidden = true;
+    homeView.hidden = false;
   }
 
   /* ---------- السلة ---------- */
@@ -228,20 +265,22 @@
       document.getElementById('menu').scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
 
-    dishesGrid.addEventListener('click', (e) => {
+    const onDishClick = (e) => {
       const add = e.target.closest('[data-add]');
       if (add) { addToCart(add.dataset.add); return; }
       const fav = e.target.closest('.dish__fav');
       if (fav) fav.textContent = fav.textContent.trim() === '🤍' ? '❤️' : '🤍';
-    });
+    };
+    dishesGrid.addEventListener('click', onDishClick);
 
+    // الضغط على مطبخ يفتح صفحته الخاصة
     familiesGrid.addEventListener('click', (e) => {
       const card = e.target.closest('[data-family]'); if (!card) return;
-      const fam = SUFRAH.familyById(card.dataset.family); if (!fam) return;
-      activeCategory = 'all'; activeCuisine = 'all'; searchTerm = fam.name;
-      syncSearchInputs(fam.name); renderCategories(); renderCuisines(); renderDishes();
-      document.getElementById('menu').scrollIntoView({ behavior: 'smooth' });
-      showToast(`🍽️ أطباق «${fam.name}»`);
+      openKitchen(card.dataset.family);
+    });
+    kitchenView.addEventListener('click', (e) => {
+      if (e.target.closest('#kviewBack')) { closeKitchen(); return; }
+      onDishClick(e);
     });
 
     drawerBody.addEventListener('click', (e) => {
@@ -259,7 +298,7 @@
     overlay.addEventListener('click', closeDrawer);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
 
-    const onSearch = (val) => { searchTerm = val; renderDishes(); };
+    const onSearch = (val) => { closeKitchen(); searchTerm = val; renderDishes(); };
     $('#searchInput').addEventListener('input', (e) => { syncSearchInputs(e.target.value, 'header'); onSearch(e.target.value); });
     $('#heroSearch').addEventListener('input', (e) => { syncSearchInputs(e.target.value, 'hero'); onSearch(e.target.value); });
     $('#heroSearchBtn').addEventListener('click', () => document.getElementById('menu').scrollIntoView({ behavior: 'smooth' }));

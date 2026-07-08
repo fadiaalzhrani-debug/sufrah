@@ -278,6 +278,34 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .empty span { font-size: 54px; display: block; margin-bottom: 10px; }
 
 /* ===================================================
+   صفحة المطبخ
+   =================================================== */
+.kitchen-view { padding: 30px 0 56px; }
+.kview__back {
+  display: inline-flex; align-items: center; gap: 6px; background: var(--soft); color: var(--ink-2);
+  font-weight: 700; font-size: 14px; padding: 10px 18px; border-radius: 999px; margin-bottom: 22px;
+  transition: background .18s, color .18s;
+}
+.kview__back:hover { background: var(--primary-soft); color: var(--primary-dark); }
+.kview__banner {
+  display: flex; align-items: center; gap: 20px; padding: 28px; border-radius: 24px;
+  box-shadow: var(--shadow-sm); margin-bottom: 28px;
+}
+.kview__avatar {
+  width: 90px; height: 90px; border-radius: 22px; background: rgba(255, 255, 255, .55);
+  display: grid; place-items: center; font-size: 48px; flex-shrink: 0;
+}
+.kview__name { font-size: clamp(24px, 3vw, 32px); font-weight: 900; color: var(--ink); }
+.kview__spec { color: var(--ink-2); font-weight: 600; font-size: 15px; margin: 4px 0 10px; }
+.kview__meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: 14px; font-weight: 700; color: var(--ink); }
+.kview__meta .star { color: var(--gold); }
+.kview__dtitle { font-size: 20px; font-weight: 900; margin-bottom: 18px; }
+@media (max-width: 520px) {
+  .kview__banner { flex-direction: column; text-align: center; padding: 22px; }
+  .kview__meta { justify-content: center; }
+}
+
+/* ===================================================
    الخطوات
    =================================================== */
 .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
