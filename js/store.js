@@ -33,7 +33,7 @@ const SUFRAH = (function () {
       reviewCount: agg ? agg.count : 0,
       time: '٤٥ د',
       cover: k.emoji || '🍽️', grad: gradForCuisine(k.cuisine),
-      city: k.city, isNew: true, owner: k.owner,
+      city: k.city, isNew: true, owner: k.owner, isOpen: k.is_open !== false,
     };
   }
   function mapDish(d) {
@@ -70,8 +70,8 @@ const SUFRAH = (function () {
     const uid = session.user.id;
     const { data: k } = await sb.from('kitchens').select('*').eq('owner', uid).limit(1).maybeSingle();
     cache.account = k
-      ? { id: k.id, owner: uid, kitchenName: k.name, cuisine: k.cuisine, city: k.city, emoji: k.emoji, email: session.user.email }
-      : { id: null, owner: uid, kitchenName: session.user.email, cuisine: 'saudi', city: '', emoji: '🍽️', email: session.user.email };
+      ? { id: k.id, owner: uid, kitchenName: k.name, cuisine: k.cuisine, city: k.city, emoji: k.emoji, email: session.user.email, isOpen: k.is_open !== false }
+      : { id: null, owner: uid, kitchenName: session.user.email, cuisine: 'saudi', city: '', emoji: '🍽️', email: session.user.email, isOpen: true };
   }
 
   async function init() {
@@ -134,6 +134,12 @@ const SUFRAH = (function () {
     return { ok: true };
   }
   async function deleteDish(id) { await sb.from('dishes').delete().eq('id', id); await refresh(); }
+  async function setKitchenOpen(open) {
+    const acc = cache.account; if (!acc || !acc.id) return { ok: false };
+    const { error } = await sb.from('kitchens').update({ is_open: open }).eq('id', acc.id);
+    if (!error) { acc.isOpen = open; await refresh(); }
+    return error ? { ok: false, error: error.message } : { ok: true };
+  }
 
   /* ---------- إعلانات الأدمن ---------- */
   async function getAnnouncements() {
@@ -220,7 +226,7 @@ const SUFRAH = (function () {
   return {
     init, onChange, refresh,
     allFamilies, allDishes, familyById, currentAccount, dishesByAccount,
-    register, login, logout, addDish, deleteDish, getAnnouncements,
+    register, login, logout, addDish, deleteDish, setKitchenOpen, getAnnouncements,
     createOrder, getKitchenOrders, getAllOrders, updateOrderStatus, subscribeOrders,
     currentUser, registerCustomer, loginCustomer, getProfile, saveProfile, getMyOrders,
     addReview, getKitchenReviews,

@@ -63,10 +63,11 @@
     let families = SUFRAH.allFamilies();
     if (loc.city !== 'كل المدن') families = families.filter((f) => f.city === loc.city);
     familiesGrid.innerHTML = families.map((f) => `
-      <article class="family" data-family="${f.id}">
+      <article class="family ${f.isOpen === false ? 'family--closed' : ''}" data-family="${f.id}">
         <div class="family__cover" style="background:${f.grad}">
           <span class="family__badge">⭐ ${(f.rating || 5).toFixed(1)}</span>
           ${f.isNew ? '<span class="family__new">جديدة ✨</span>' : ''}
+          ${f.isOpen === false ? '<span class="family__closed">🔴 مغلق</span>' : ''}
           ${f.cover || '🍽️'}
         </div>
         <div class="family__body">
@@ -177,6 +178,7 @@
             </div>
           </div>
         </div>
+        ${fam.isOpen === false ? '<div class="closed-banner">🔴 هذا المطبخ مغلق حالياً — ما تقدر تطلب منه الآن</div>' : ''}
         <h3 class="kview__dtitle">أطباق المطبخ (${dishes.length})</h3>
         ${dishes.length
           ? `<div class="dishes">${dishes.map(dishCard).join('')}</div>`
@@ -243,9 +245,11 @@
   }, 0);
 
   function addToCart(id) {
+    const d = dishById(id); if (!d) return;
+    const fam = SUFRAH.familyById(d.familyId);
+    if (fam && fam.isOpen === false) { showToast('🔴 هذا المطبخ مغلق حالياً'); return; }
     cart[id] = (cart[id] || 0) + 1;
     SUFRAH.saveCart(cart); updateCartUI();
-    const d = dishById(id);
     showToast(`✅ أُضيف «${d.name}» للسلة`);
   }
   function changeQty(id, delta) {

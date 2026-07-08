@@ -74,6 +74,8 @@
     const cz = (CUISINE_BY_ID[account.cuisine] || {});
     const cePrefix = cz.emoji ? cz.emoji + ' ' : '';
     $('#dashMeta').textContent = `${cePrefix}${cz.name || ''}${account.city ? ' · ' + account.city : ''} · ${account.email || ''}`;
+    $('#openToggle').checked = account.isOpen !== false;
+    $('#openLabel').textContent = account.isOpen !== false ? 'مفتوح' : 'مغلق';
     // ضبط تصنيف المطبخ الافتراضي في نموذج الطبق
     $('#dishCuisine').value = account.cuisine;
     renderMyDishes(account);
@@ -244,6 +246,14 @@
 
     // خروج
     $('#logoutBtn').addEventListener('click', async () => { await SUFRAH.logout(); showAuth(); showToast('تم تسجيل الخروج'); });
+
+    // حالة المطبخ مفتوح/مغلق
+    $('#openToggle').addEventListener('change', async (e) => {
+      const open = e.target.checked;
+      $('#openLabel').textContent = open ? 'مفتوح' : 'مغلق';
+      await SUFRAH.setKitchenOpen(open);
+      showToast(open ? '🟢 مطبخك مفتوح للطلبات' : '🔴 مطبخك مغلق مؤقتاً');
+    });
 
     // فتح/إغلاق نافذة الإضافة
     $('#openAddBtn').addEventListener('click', () => { resetDishForm(); openAdd(); });
