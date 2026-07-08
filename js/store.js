@@ -176,12 +176,20 @@ const SUFRAH = (function () {
   async function getProfile() {
     const u = await currentUser(); if (!u) return null;
     const { data } = await sb.from('profiles').select('*').eq('id', u.id).maybeSingle();
-    return { id: u.id, email: u.email, full_name: (data && data.full_name) || '', phone: (data && data.phone) || '', address: (data && data.address) || '' };
+    return {
+      id: u.id, email: u.email,
+      full_name: (data && data.full_name) || '', phone: (data && data.phone) || '', address: (data && data.address) || '',
+      cart: (data && data.cart) || null, city: (data && data.city) || null, notifs: (data && data.notifs) || null,
+    };
   }
   async function saveProfile(p) {
     const u = await currentUser(); if (!u) return { ok: false };
     const { error } = await sb.from('profiles').upsert({ id: u.id, full_name: p.name, phone: p.phone, address: p.address });
     return error ? { ok: false, error: error.message } : { ok: true };
+  }
+  async function saveCustomerData(d) {
+    const u = await currentUser(); if (!u) return;
+    await sb.from('profiles').upsert({ id: u.id, ...d });
   }
   async function getMyOrders() {
     const u = await currentUser(); if (!u) return [];
@@ -234,7 +242,7 @@ const SUFRAH = (function () {
     allFamilies, allDishes, familyById, currentAccount, dishesByAccount,
     register, login, logout, addDish, deleteDish, setKitchenOpen, getAnnouncements,
     createOrder, getKitchenOrders, getAllOrders, updateOrderStatus, subscribeOrders,
-    currentUser, registerCustomer, loginCustomer, getProfile, saveProfile, getMyOrders,
+    currentUser, registerCustomer, loginCustomer, getProfile, saveProfile, saveCustomerData, getMyOrders,
     addReview, getKitchenReviews, getCoupon,
     getCart, saveCart,
   };

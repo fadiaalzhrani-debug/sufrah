@@ -245,20 +245,30 @@
     const d = dishById(id); return s + (d ? d.price * q : 0);
   }, 0);
 
+  function pushCloud() { SUFRAH.saveCustomerData({ cart, city: loc.city, notifs }); }
+  function saveCartAll() { SUFRAH.saveCart(cart); pushCloud(); }
+  async function syncFromCloud() {
+    const p = await SUFRAH.getProfile();
+    if (!p) return;
+    if (p.cart && Object.keys(p.cart).length) { cart = p.cart; SUFRAH.saveCart(cart); updateCartUI(); }
+    if (p.city) { loc = { city: p.city }; localStorage.setItem('sufrah_location', JSON.stringify(loc)); updateLocHeader(); renderFamilies(); renderDishes(); }
+    if (p.notifs && p.notifs.length) { notifs = p.notifs; localStorage.setItem('sufrah_notifs', JSON.stringify(notifs)); renderNotifBadge(); }
+  }
+
   function addToCart(id) {
     const d = dishById(id); if (!d) return;
     const fam = SUFRAH.familyById(d.familyId);
     if (fam && fam.isOpen === false) { showToast('🔴 هذا المطبخ مغلق حالياً'); return; }
     cart[id] = (cart[id] || 0) + 1;
-    SUFRAH.saveCart(cart); updateCartUI();
+    saveCartAll(); updateCartUI();
     showToast(`✅ أُضيف «${d.name}» للسلة`);
   }
   function changeQty(id, delta) {
     cart[id] = (cart[id] || 0) + delta;
     if (cart[id] <= 0) delete cart[id];
-    SUFRAH.saveCart(cart); updateCartUI();
+    saveCartAll(); updateCartUI();
   }
-  function removeItem(id) { delete cart[id]; SUFRAH.saveCart(cart); updateCartUI(); }
+  function removeItem(id) { delete cart[id]; saveCartAll(); updateCartUI(); }
 
   function deliveryFee() {
     if (deliveryMethod === 'pickup') return 0;
@@ -391,7 +401,7 @@
   }
   function addNotif(text) {
     notifs.unshift({ text, time: Date.now(), read: false });
-    saveNotifs(); renderNotifBadge(); showToast('🔔 ' + text);
+    saveNotifs(); renderNotifBadge(); showToast('🔔 ' + text); pushCloud();
   }
   function renderNotifPanel() {
     notifBody.innerHTML = notifs.length ? notifs.map((n) => `
@@ -446,13 +456,13 @@
         e.preventDefault(); const fd = new FormData(e.target); const err = $('#clErr');
         const res = await SUFRAH.loginCustomer(fd.get('email'), fd.get('password'));
         if (!res.ok) { err.textContent = res.error; err.hidden = false; return; }
-        showToast('أهلاً فيك 👋'); refreshAcctBtn(); renderAcct();
+        showToast('أهلاً فيك 👋'); await refreshAcctBtn(); await syncFromCloud(); renderAcct();
       });
       $('#custReg').addEventListener('submit', async (e) => {
         e.preventDefault(); const fd = new FormData(e.target); const err = $('#crErr');
         const res = await SUFRAH.registerCustomer({ name: fd.get('name'), phone: fd.get('phone'), email: fd.get('email'), password: fd.get('password') });
         if (!res.ok) { err.textContent = res.error; err.hidden = false; return; }
-        showToast('🎉 تم إنشاء حسابك'); refreshAcctBtn(); renderAcct();
+        showToast('🎉 تم إنشاء حسابك'); await refreshAcctBtn(); pushCloud(); renderAcct();
       });
     } else {
       const p = await SUFRAH.getProfile();
@@ -482,7 +492,7 @@
   function fillLocCities() { $('#locCity').innerHTML = CITIES.map((c) => `<option value="${c}">${c}</option>`).join(''); }
   function applyCity(city) {
     loc = { city };
-    saveLoc(); updateLocHeader(); renderFamilies(); renderDishes();
+    saveLoc(); updateLocHeader(); renderFamilies(); renderDishes(); pushCloud();
   }
   function openLoc() {
     $('#locCity').value = loc.city;
@@ -615,7 +625,7 @@
       btn.disabled = false; btn.textContent = 'إتمام الطلب';
       if (okCount > 0) {
         SUFRAH.saveProfile({ name, phone, address });
-        cart = {}; coupon = null; $('#couponCode').value = ''; SUFRAH.saveCart(cart); updateCartUI(); closeDrawer();
+        cart = {}; coupon = null; $('#couponCode').value = ''; saveCartAll(); updateCartUI(); closeDrawer();
         showToast('🎉 تم إرسال طلبك للأسرة! بتجهّزه وتتواصل معك.');
       } else {
         showToast('تعذّر إرسال الطلب، حاول مرة ثانية');
@@ -635,6 +645,7 @@
     SUFRAH.onChange(renderAll);
     try { await SUFRAH.init(); } catch (e) { console.warn('SUFRAH.init', e); }
     await refreshAcctBtn();
+    await syncFromCloud();
     renderNotifBadge();
     SUFRAH.subscribeOrders((payload) => {
       if (payload.eventType === 'UPDATE' && payload.new && myUserId && payload.new.customer_id === myUserId) {
