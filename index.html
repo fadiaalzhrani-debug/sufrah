@@ -29,11 +29,11 @@
         <span class="logo__text">سُفرة</span>
       </a>
 
-      <button class="location" type="button">
+      <button class="location" id="locationBtn" type="button">
         <span class="location__icon">📍</span>
         <span class="location__label">
           <small>التوصيل إلى</small>
-          <strong>الرياض — حي النرجس</strong>
+          <strong id="locationText">كل المدن</strong>
         </span>
         <span class="location__chev">▾</span>
       </button>
@@ -263,6 +263,20 @@
         <a href="terms.html#terms" target="_blank" rel="noopener">شروط الاستخدام</a> و<a href="terms.html#privacy" target="_blank" rel="noopener">سياسة الخصوصية</a>.</p>
     </div>
   </aside>
+
+  <!-- ===== الموقع ===== -->
+  <div class="overlay" id="locOverlay"></div>
+  <div class="modal" id="locModal" aria-label="الموقع">
+    <div class="modal__head">
+      <h3>📍 موقع التوصيل</h3>
+      <button class="drawer__close" id="locClose" aria-label="إغلاق">✕</button>
+    </div>
+    <div class="modal__body form">
+      <div class="field"><label>المدينة</label><div class="select-wrap"><select id="locCity"></select></div></div>
+      <div class="field"><label>الحي / الشارع (اختياري)</label><input id="locDistrict" type="text" placeholder="مثال: حي النرجس" /></div>
+      <button class="btn btn--primary btn--block" id="locSave">حفظ الموقع</button>
+    </div>
+  </div>
 
   <!-- ===== حساب العميل ===== -->
   <div class="overlay" id="acctOverlay"></div>

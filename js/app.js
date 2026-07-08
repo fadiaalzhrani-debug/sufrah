@@ -10,6 +10,8 @@
   let searchTerm = '';
   let deliveryMethod = 'pickup';
   let cart = SUFRAH.getCart();
+  const CITIES = ['كل المدن', 'الرياض', 'جدة', 'مكة', 'المدينة المنورة', 'الدمام', 'الخبر', 'القصيم', 'الطائف', 'الأحساء', 'أبها', 'تبوك', 'حائل', 'جازان'];
+  let loc = (function () { try { return JSON.parse(localStorage.getItem('sufrah_location')) || { city: 'كل المدن', district: '' }; } catch { return { city: 'كل المدن', district: '' }; } })();
 
   const $ = (s) => document.querySelector(s);
   const categoryChips = $('#categoryChips');
@@ -28,6 +30,8 @@
   const acctOverlay = $('#acctOverlay');
   const acctModal = $('#acctModal');
   const acctBody = $('#acctBody');
+  const locOverlay = $('#locOverlay');
+  const locModal = $('#locModal');
 
   const priceLabel = (n) => `${n} ر.س`;
   const dishById = (id) => SUFRAH.allDishes().find((d) => d.id === id);
@@ -48,7 +52,8 @@
 
   /* ---------- الأسر ---------- */
   function renderFamilies() {
-    const families = SUFRAH.allFamilies();
+    let families = SUFRAH.allFamilies();
+    if (loc.city !== 'كل المدن') families = families.filter((f) => f.city === loc.city);
     familiesGrid.innerHTML = families.map((f) => `
       <article class="family" data-family="${f.id}">
         <div class="family__cover" style="background:${f.grad}">
@@ -74,6 +79,7 @@
     return SUFRAH.allDishes().filter((d) => {
       if (activeCategory !== 'all' && d.cat !== activeCategory) return false;
       if (activeCuisine !== 'all' && d.cuisine !== activeCuisine) return false;
+      if (loc.city !== 'كل المدن') { const fam = SUFRAH.familyById(d.familyId); if (!fam || fam.city !== loc.city) return false; }
       if (term) {
         const fam = SUFRAH.familyById(d.familyId);
         const hay = `${d.name} ${d.desc || ''} ${fam ? fam.name : ''}`;
@@ -118,7 +124,13 @@
   function renderDishes() {
     const list = getFilteredDishes();
     dishesCount.textContent = `${list.length} طبق متاح`;
-    if (list.length === 0) { dishesGrid.innerHTML = ''; emptyState.hidden = false; return; }
+    if (list.length === 0) {
+      dishesGrid.innerHTML = '';
+      emptyState.querySelector('p').textContent = (loc.city !== 'كل المدن')
+        ? `ما فيه مطابخ في ${loc.city} بعد — جرّب «كل المدن»`
+        : 'ما لقينا نتيجة… جرّب كلمة ثانية';
+      emptyState.hidden = false; return;
+    }
     emptyState.hidden = true;
     dishesGrid.innerHTML = list.map(dishCard).join('');
   }
@@ -329,11 +341,24 @@
     }
   }
   async function prefillCheckout() {
-    const p = await SUFRAH.getProfile(); if (!p) return;
-    if (!$('#coName').value) $('#coName').value = p.full_name || '';
-    if (!$('#coPhone').value) $('#coPhone').value = p.phone || '';
-    if (!$('#coAddress').value) $('#coAddress').value = p.address || '';
+    const p = await SUFRAH.getProfile();
+    if (p && !$('#coName').value) $('#coName').value = p.full_name || '';
+    if (p && !$('#coPhone').value) $('#coPhone').value = p.phone || '';
+    if (!$('#coAddress').value) {
+      const locAddr = loc.city !== 'كل المدن' ? (loc.district ? loc.district + '، ' + loc.city : loc.city) : '';
+      $('#coAddress').value = (p && p.address) || locAddr;
+    }
   }
+
+  /* ---------- الموقع ---------- */
+  function saveLoc() { localStorage.setItem('sufrah_location', JSON.stringify(loc)); }
+  function updateLocHeader() { $('#locationText').textContent = loc.city + (loc.district ? ' — ' + loc.district : ''); }
+  function fillLocCities() { $('#locCity').innerHTML = CITIES.map((c) => `<option value="${c}">${c}</option>`).join(''); }
+  function openLoc() {
+    $('#locCity').value = loc.city; $('#locDistrict').value = loc.district || '';
+    locModal.classList.add('is-open'); locOverlay.classList.add('is-open'); document.body.style.overflow = 'hidden';
+  }
+  function closeLoc() { locModal.classList.remove('is-open'); locOverlay.classList.remove('is-open'); document.body.style.overflow = ''; }
 
   /* ---------- الأحداث ---------- */
   function bindEvents() {
@@ -382,7 +407,15 @@
     $('#accountBtn').addEventListener('click', openAcct);
     $('#acctClose').addEventListener('click', closeAcct);
     acctOverlay.addEventListener('click', closeAcct);
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeDrawer(); closeAcct(); } });
+    $('#locationBtn').addEventListener('click', openLoc);
+    $('#locClose').addEventListener('click', closeLoc);
+    locOverlay.addEventListener('click', closeLoc);
+    $('#locSave').addEventListener('click', () => {
+      loc = { city: $('#locCity').value, district: ($('#locDistrict').value || '').trim() };
+      saveLoc(); updateLocHeader(); renderFamilies(); renderDishes(); closeLoc();
+      showToast('📍 تم تحديث موقعك');
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeDrawer(); closeAcct(); closeLoc(); } });
 
     const onSearch = (val) => { closeKitchen(); searchTerm = val; renderDishes(); };
     $('#searchInput').addEventListener('input', (e) => { syncSearchInputs(e.target.value, 'header'); onSearch(e.target.value); });
@@ -430,6 +463,7 @@
     if (openKitchenId) renderKitchen(openKitchenId); else renderDishes();
   }
   async function init() {
+    fillLocCities(); updateLocHeader();
     renderCategories(); renderCuisines(); renderFamilies(); renderDishes();
     updateCartUI(); bindEvents();
     SUFRAH.onChange(renderAll);
