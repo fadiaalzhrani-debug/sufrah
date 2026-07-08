@@ -12,6 +12,7 @@ const SUFRAH = (function () {
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
   const cache = { kitchens: [], dishes: [], account: null };
+  let reviewAgg = {}; // kitchenId -> { sum, count }
   let onChangeCb = null;
   const emit = () => { if (typeof onChangeCb === 'function') onChangeCb(); };
   function onChange(cb) { onChangeCb = cb; }
@@ -24,10 +25,13 @@ const SUFRAH = (function () {
 
   /* ---------- تحويل صفوف القاعدة لشكل الواجهة ---------- */
   function mapKitchen(k) {
+    const agg = reviewAgg[k.id];
     return {
       id: k.id, name: k.name, cuisine: k.cuisine,
       spec: (CUISINE_BY_ID[k.cuisine] || {}).name || 'أكل بيت',
-      rating: Number(k.rating) || 5, time: '٤٥ د',
+      rating: agg ? (agg.sum / agg.count) : (Number(k.rating) || 5),
+      reviewCount: agg ? agg.count : 0,
+      time: '٤٥ د',
       cover: k.emoji || '🍽️', grad: gradForCuisine(k.cuisine),
       city: k.city, isNew: true, owner: k.owner,
     };
@@ -45,10 +49,16 @@ const SUFRAH = (function () {
 
   /* ---------- تحميل البيانات المشتركة ---------- */
   async function refresh() {
-    const [ks, ds] = await Promise.all([
+    const [ks, ds, rv] = await Promise.all([
       sb.from('kitchens').select('*').order('created_at', { ascending: false }),
       sb.from('dishes').select('*').order('created_at', { ascending: false }),
+      sb.from('reviews').select('kitchen_id,rating'),
     ]);
+    reviewAgg = {};
+    (rv.data || []).forEach((r) => {
+      const a = reviewAgg[r.kitchen_id] || { sum: 0, count: 0 };
+      a.sum += r.rating; a.count += 1; reviewAgg[r.kitchen_id] = a;
+    });
     cache.kitchens = (ks.data || []).map(mapKitchen);
     cache.dishes = (ds.data || []).map(mapDish);
     emit();
@@ -71,6 +81,7 @@ const SUFRAH = (function () {
       sb.channel('sufrah-rt')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'kitchens' }, refresh)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'dishes' }, refresh)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, refresh)
         .subscribe();
     } catch (e) { /* اللحظي اختياري */ }
     sb.auth.onAuthStateChange(() => { loadAccount().then(emit); });
@@ -171,6 +182,18 @@ const SUFRAH = (function () {
     const { data } = await sb.from('orders').select('*').eq('customer_id', u.id).order('created_at', { ascending: false });
     return data || [];
   }
+
+  /* ---------- التقييمات ---------- */
+  async function addReview(r) {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return { ok: false, error: 'سجّل دخولك أولاً' };
+    const { error } = await sb.from('reviews').insert({ kitchen_id: r.kitchen_id, customer_id: session.user.id, rating: r.rating, comment: r.comment });
+    return error ? { ok: false, error: error.message } : { ok: true };
+  }
+  async function getKitchenReviews(kid) {
+    const { data } = await sb.from('reviews').select('*').eq('kitchen_id', kid).order('created_at', { ascending: false });
+    return data || [];
+  }
   async function getKitchenOrders(kitchenId) {
     const { data } = await sb.from('orders').select('*').eq('kitchen_id', kitchenId).order('created_at', { ascending: false });
     return data || [];
@@ -200,6 +223,7 @@ const SUFRAH = (function () {
     register, login, logout, addDish, deleteDish, getAnnouncements,
     createOrder, getKitchenOrders, getAllOrders, updateOrderStatus, subscribeOrders,
     currentUser, registerCustomer, loginCustomer, getProfile, saveProfile, getMyOrders,
+    addReview, getKitchenReviews,
     getCart, saveCart,
   };
 })();

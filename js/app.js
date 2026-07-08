@@ -141,6 +141,7 @@
     const fam = SUFRAH.familyById(id); if (!fam) return false;
     const dishes = SUFRAH.allDishes().filter((d) => d.familyId === id);
     const cz = (CUISINE_BY_ID[fam.cuisine] || {});
+    const rc = fam.reviewCount ? ` (${fam.reviewCount})` : '';
     kitchenView.innerHTML = `
       <div class="container">
         <button class="kview__back" id="kviewBack">↩ رجوع للرئيسية</button>
@@ -150,7 +151,7 @@
             <h2 class="kview__name">${fam.name}</h2>
             <p class="kview__spec">${cz.name || ''}${fam.city ? ' · ' + fam.city : ''}</p>
             <div class="kview__meta">
-              <span><span class="star">★</span> ${(fam.rating || 5).toFixed(1)}</span>
+              <span><span class="star">★</span> ${(fam.rating || 5).toFixed(1)}${rc}</span>
               <span>🛵 ${fam.time || '٤٥ د'}</span>
               <span>🏠 أسرة موثّقة</span>
             </div>
@@ -160,8 +161,47 @@
         ${dishes.length
           ? `<div class="dishes">${dishes.map(dishCard).join('')}</div>`
           : `<div class="empty"><span>🍳</span><p>هذا المطبخ ما أضاف أطباق بعد</p></div>`}
+        <div class="kview__reviews">
+          <h3 class="kview__dtitle">⭐ التقييمات</h3>
+          <div id="reviewsArea">جاري التحميل…</div>
+        </div>
       </div>`;
+    loadKitchenReviews(id);
     return true;
+  }
+  async function loadKitchenReviews(kid) {
+    const [user, reviews] = await Promise.all([SUFRAH.currentUser(), SUFRAH.getKitchenReviews(kid)]);
+    const area = $('#reviewsArea'); if (!area) return;
+    const form = user ? `
+      <div class="rate-box">
+        <div class="rate-stars" id="rateStars">${[1, 2, 3, 4, 5].map((n) => `<span data-star="${n}">☆</span>`).join('')}</div>
+        <textarea id="rateComment" rows="2" placeholder="اكتب رأيك (اختياري)…"></textarea>
+        <button class="btn btn--primary" id="rateSubmit">أضف تقييمك</button>
+      </div>` : `<div class="rate-login">سجّل دخولك (زر 👤 فوق) عشان تقيّم المطبخ</div>`;
+    const list = reviews.length ? reviews.map((r) => `
+      <div class="review">
+        <div class="review__stars">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div>
+        ${r.comment ? `<div class="review__text">${escH(r.comment)}</div>` : ''}
+        <div class="review__time">${new Date(r.created_at).toLocaleDateString('ar')}</div>
+      </div>`).join('') : '<div class="aempty">ما فيه تقييمات بعد — كن أول من يقيّم</div>';
+    area.innerHTML = form + `<div class="reviews-list">${list}</div>`;
+    if (user) {
+      let picked = 0;
+      const starsEl = $('#rateStars');
+      starsEl.addEventListener('click', (e) => {
+        const s = e.target.closest('[data-star]'); if (!s) return;
+        picked = +s.dataset.star;
+        [...starsEl.children].forEach((c, i) => { c.textContent = i < picked ? '★' : '☆'; });
+      });
+      $('#rateSubmit').addEventListener('click', async () => {
+        if (!picked) { showToast('اختر عدد النجوم ⭐'); return; }
+        const res = await SUFRAH.addReview({ kitchen_id: kid, rating: picked, comment: ($('#rateComment').value || '').trim() });
+        if (!res.ok) { showToast('تعذّر إرسال التقييم'); return; }
+        showToast('🌟 شكراً لتقييمك!');
+        await SUFRAH.refresh();
+        openKitchen(kid);
+      });
+    }
   }
   function openKitchen(id) {
     if (!renderKitchen(id)) return;
