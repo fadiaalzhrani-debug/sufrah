@@ -77,6 +77,18 @@
         <div id="annList" class="alist"></div>
       </section>
 
+      <!-- الكوبونات -->
+      <section class="acard">
+        <h2 class="acard__title">🎁 كوبونات الخصم (<span id="cCount">0</span>)</h2>
+        <div class="acompose" style="flex-wrap:wrap">
+          <input id="cCode" placeholder="الكود (مثل WELCOME10)" style="flex:1;min-width:120px" />
+          <div class="select-wrap" style="min-width:140px"><select id="cType"><option value="fixed">مبلغ (ر.س)</option><option value="percent">نسبة (%)</option></select></div>
+          <input id="cValue" type="number" placeholder="القيمة" style="width:100px" />
+          <button class="btn btn--primary" id="cAdd" type="button">إضافة</button>
+        </div>
+        <div id="couponsList" class="alist"></div>
+      </section>
+
       <!-- الطلبات -->
       <section class="acard">
         <h2 class="acard__title">📥 الطلبات (<span id="oCount">0</span>)</h2>

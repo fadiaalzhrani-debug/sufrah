@@ -9,12 +9,13 @@
   let activeCuisine = 'all';
   let searchTerm = '';
   let sortBy = 'new';
+  let coupon = null;
   let deliveryMethod = 'pickup';
   let deliveryDistance = 'near';
   let paymentMethod = 'cash';
   let cart = SUFRAH.getCart();
   const CITIES = ['كل المدن', 'الرياض', 'جدة', 'مكة', 'المدينة المنورة', 'الدمام', 'الخبر', 'القصيم', 'الطائف', 'الأحساء', 'أبها', 'تبوك', 'حائل', 'جازان'];
-  let loc = (function () { try { return JSON.parse(localStorage.getItem('sufrah_location')) || { city: 'كل المدن', district: '' }; } catch { return { city: 'كل المدن', district: '' }; } })();
+  let loc = (function () { try { return { city: (JSON.parse(localStorage.getItem('sufrah_location')) || {}).city || 'كل المدن' }; } catch { return { city: 'كل المدن' }; } })();
 
   const $ = (s) => document.querySelector(s);
   const categoryChips = $('#categoryChips');
@@ -263,6 +264,11 @@
     if (deliveryMethod === 'pickup') return 0;
     return (DELIVERY_DISTANCES[deliveryDistance] || DELIVERY_DISTANCES.near).fee;
   }
+  function discountAmount(subtotal) {
+    if (!coupon) return 0;
+    if (coupon.discount_type === 'percent') return Math.round(subtotal * Number(coupon.value) / 100);
+    return Math.min(Number(coupon.value), subtotal);
+  }
   function renderDeliveryOptions() {
     const distance = deliveryMethod === 'family' ? `
       <div class="distance-pick">
@@ -343,9 +349,12 @@
 
     const subtotal = cartSubtotal();
     const fee = subtotal > 0 ? deliveryFee() : 0;
+    const discount = subtotal > 0 ? discountAmount(subtotal) : 0;
     $('#subtotal').textContent = priceLabel(subtotal);
     $('#delivery').textContent = fee ? priceLabel(fee) : 'مجاناً';
-    $('#total').textContent = priceLabel(subtotal + fee);
+    const dRow = $('#discountRow');
+    if (dRow) { if (discount > 0) { dRow.hidden = false; $('#discountVal').textContent = '- ' + priceLabel(discount); } else dRow.hidden = true; }
+    $('#total').textContent = priceLabel(Math.max(0, subtotal + fee - discount));
   }
 
   /* ---------- فتح/إغلاق ---------- */
@@ -462,38 +471,21 @@
     if (p && !$('#coName').value) $('#coName').value = p.full_name || '';
     if (p && !$('#coPhone').value) $('#coPhone').value = p.phone || '';
     if (!$('#coAddress').value) {
-      const locAddr = loc.city !== 'كل المدن' ? (loc.district ? loc.district + '، ' + loc.city : loc.city) : '';
+      const locAddr = loc.city !== 'كل المدن' ? loc.city : '';
       $('#coAddress').value = (p && p.address) || locAddr;
     }
   }
 
   /* ---------- الموقع ---------- */
-  const DISTRICTS = {
-    'الرياض': ['النرجس', 'الياسمين', 'العليا', 'الملقا', 'الربيع', 'النخيل', 'غرناطة', 'قرطبة', 'الحمراء', 'الروضة', 'المروج', 'النزهة', 'الملز', 'حطين', 'الصحافة', 'السويدي', 'العزيزية'],
-    'جدة': ['الروضة', 'الحمراء', 'السلامة', 'النعيم', 'الشاطئ', 'الصفا', 'المرجان', 'أبحر الشمالية', 'النزهة', 'البوادي', 'الفيصلية', 'الربوة'],
-    'مكة': ['العزيزية', 'الشوقية', 'النسيم', 'الزاهر', 'الرصيفة', 'العوالي', 'الكعكية', 'الشرائع'],
-    'المدينة المنورة': ['قباء', 'العوالي', 'الحرة الشرقية', 'العزيزية', 'الدفاع', 'الخالدية', 'شوران'],
-    'الدمام': ['الشاطئ', 'الفيصلية', 'النور', 'الجلوية', 'الأمانة', 'البادية', 'الروضة', 'الأنوار'],
-    'الخبر': ['العقربية', 'الراكة', 'الثقبة', 'الحزام الذهبي', 'اليرموك', 'الخزامى', 'الجسر'],
-    'القصيم': ['الصفراء', 'الروضة', 'النهضة', 'الريان', 'الملك فهد', 'الإسكان'],
-    'الطائف': ['شهار', 'الحوية', 'الشفا', 'قروى', 'الفيصلية', 'معشي'],
-    'الأحساء': ['المبرز', 'الهفوف', 'الطرف', 'العيون', 'المزروعية'],
-    'أبها': ['المنسك', 'الموظفين', 'النميص', 'الخالدية', 'المفتاحة'],
-    'تبوك': ['العزيزية', 'المروج', 'الورود', 'الفيصلية', 'السلطانة'],
-    'حائل': ['النقرة', 'المطار', 'الخزامى', 'الوسيطاء', 'برزان'],
-    'جازان': ['الروضة', 'الصفا', 'المطار', 'الشاطئ', 'المحمدية'],
-  };
   function saveLoc() { localStorage.setItem('sufrah_location', JSON.stringify(loc)); }
-  function updateLocHeader() { $('#locationText').textContent = loc.city + (loc.district ? ' — ' + loc.district : ''); }
+  function updateLocHeader() { $('#locationText').textContent = loc.city; }
   function fillLocCities() { $('#locCity').innerHTML = CITIES.map((c) => `<option value="${c}">${c}</option>`).join(''); }
-  function fillDistricts(city) {
-    const list = DISTRICTS[city] || [];
-    $('#locDistrict').innerHTML = '<option value="">كل الأحياء</option>' + list.map((d) => `<option value="${d}">${d}</option>`).join('');
+  function applyCity(city) {
+    loc = { city };
+    saveLoc(); updateLocHeader(); renderFamilies(); renderDishes();
   }
   function openLoc() {
     $('#locCity').value = loc.city;
-    fillDistricts(loc.city);
-    $('#locDistrict').value = loc.district || '';
     locModal.classList.add('is-open'); locOverlay.classList.add('is-open'); document.body.style.overflow = 'hidden';
   }
   function closeLoc() { locModal.classList.remove('is-open'); locOverlay.classList.remove('is-open'); document.body.style.overflow = ''; }
@@ -507,15 +499,8 @@
         const data = await res.json();
         const detectedCity = data.city || data.principalSubdivision || data.locality || '';
         const cityMatch = CITIES.find((c) => c !== 'كل المدن' && detectedCity && (detectedCity.includes(c) || c.includes(detectedCity)));
-        const citySel = $('#locCity');
-        if (cityMatch) { citySel.value = cityMatch; fillDistricts(cityMatch); }
-        const nb = (data.locality && data.locality !== detectedCity && data.locality !== cityMatch) ? data.locality : '';
-        if (nb) {
-          const sel = $('#locDistrict');
-          if (![...sel.options].some((o) => o.value === nb)) sel.add(new Option(nb, nb));
-          sel.value = nb;
-        }
-        showToast(cityMatch ? `📍 موقعك: ${cityMatch}${nb ? ' — ' + nb : ''}` : '📍 حددنا موقعك — اختر مدينتك يدوياً');
+        if (cityMatch) { $('#locCity').value = cityMatch; applyCity(cityMatch); showToast(`📍 مدينتك: ${cityMatch}`); }
+        else showToast(detectedCity ? `📍 ${detectedCity} — اختر أقرب مدينة` : '📍 اختر مدينتك يدوياً');
       } catch (e) { showToast('تعذّر تحديد الموقع، اختر يدوياً'); }
     }, () => { showToast('لازم تسمح بالوصول لموقعك من المتصفح'); }, { enableHighAccuracy: true, timeout: 8000 });
   }
@@ -572,11 +557,9 @@
     $('#locationBtn').addEventListener('click', openLoc);
     $('#locClose').addEventListener('click', closeLoc);
     locOverlay.addEventListener('click', closeLoc);
-    $('#locCity').addEventListener('change', (e) => fillDistricts(e.target.value));
     $('#locGps').addEventListener('click', detectLocation);
     $('#locSave').addEventListener('click', () => {
-      loc = { city: $('#locCity').value, district: ($('#locDistrict').value || '').trim() };
-      saveLoc(); updateLocHeader(); renderFamilies(); renderDishes(); closeLoc();
+      applyCity($('#locCity').value); closeLoc();
       showToast('📍 تم تحديث موقعك');
     });
     $('#notifBtn').addEventListener('click', openNotif);
@@ -590,6 +573,16 @@
     $('#heroSearchBtn').addEventListener('click', () => document.getElementById('menu').scrollIntoView({ behavior: 'smooth' }));
     $('#sortSelect').addEventListener('change', (e) => { sortBy = e.target.value; renderDishes(); });
 
+    $('#couponApply').addEventListener('click', async () => {
+      const code = ($('#couponCode').value || '').trim();
+      if (!code) return;
+      const c = await SUFRAH.getCoupon(code);
+      if (!c) { coupon = null; updateCartUI(); showToast('❌ كود الخصم غير صحيح'); return; }
+      coupon = c; updateCartUI();
+      const off = c.discount_type === 'percent' ? c.value + '%' : c.value + ' ر.س';
+      showToast(`🎁 تم تطبيق الخصم (${off})!`);
+    });
+
     $('#checkoutBtn').addEventListener('click', async () => {
       if (cartQtyTotal() === 0) { showToast('سلتك فاضية 🛒'); return; }
       const name = ($('#coName').value || '').trim();
@@ -598,6 +591,8 @@
       if (!name || !phone) { showToast('اكتب الاسم ورقم الجوال 📞'); return; }
       if (paymentMethod === 'card') { showToast('💳 الدفع بالبطاقة قريباً — اختر «عند الاستلام» حالياً'); return; }
       const fee = deliveryFee();
+      const totalSub = cartSubtotal();
+      const totalDisc = discountAmount(totalSub);
 
       // نجمّع الطلب حسب كل مطبخ (طلب مستقل لكل أسرة)
       const groups = {};
@@ -609,17 +604,18 @@
       let okCount = 0;
       for (const [kid, items] of Object.entries(groups)) {
         const subtotal = items.reduce((s, it) => s + it.price * it.qty, 0);
+        const orderDisc = totalSub > 0 ? Math.round(totalDisc * subtotal / totalSub) : 0;
         const res = await SUFRAH.createOrder({
           kitchen_id: kid, customer_name: name, customer_phone: phone, address,
           delivery_method: deliveryMethod, payment_method: paymentMethod,
-          items, subtotal, delivery_fee: fee, total: subtotal + fee,
+          items, subtotal, delivery_fee: fee, total: Math.max(0, subtotal + fee - orderDisc),
         });
         if (res.ok) okCount++;
       }
       btn.disabled = false; btn.textContent = 'إتمام الطلب';
       if (okCount > 0) {
         SUFRAH.saveProfile({ name, phone, address });
-        cart = {}; SUFRAH.saveCart(cart); updateCartUI(); closeDrawer();
+        cart = {}; coupon = null; $('#couponCode').value = ''; SUFRAH.saveCart(cart); updateCartUI(); closeDrawer();
         showToast('🎉 تم إرسال طلبك للأسرة! بتجهّزه وتتواصل معك.');
       } else {
         showToast('تعذّر إرسال الطلب، حاول مرة ثانية');

@@ -763,6 +763,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .checkout-form { display: grid; gap: 8px; margin-bottom: 14px; }
 .checkout-form input { width: 100%; font-family: inherit; font-size: 14px; padding: 11px 13px; border: 1.5px solid var(--line); border-radius: 12px; outline: none; background: var(--bg); color: var(--ink); }
 .checkout-form input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+.coupon-row { display: flex; gap: 8px; margin-bottom: 12px; }
+.coupon-row input { flex: 1; font-family: inherit; font-size: 14px; padding: 11px 13px; border: 1.5px solid var(--line); border-radius: 12px; outline: none; background: var(--bg); color: var(--ink); }
+.coupon-row input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+.coupon-row .btn { padding: 11px 18px; }
 
 .orders-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 8px; }
 .order { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: var(--shadow-sm); }

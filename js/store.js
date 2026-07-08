@@ -200,6 +200,12 @@ const SUFRAH = (function () {
     const { data } = await sb.from('reviews').select('*').eq('kitchen_id', kid).order('created_at', { ascending: false });
     return data || [];
   }
+
+  /* ---------- الكوبونات ---------- */
+  async function getCoupon(code) {
+    const { data } = await sb.from('coupons').select('*').eq('code', (code || '').trim().toUpperCase()).eq('active', true).maybeSingle();
+    return data || null;
+  }
   async function getKitchenOrders(kitchenId) {
     const { data } = await sb.from('orders').select('*').eq('kitchen_id', kitchenId).order('created_at', { ascending: false });
     return data || [];
@@ -229,7 +235,7 @@ const SUFRAH = (function () {
     register, login, logout, addDish, deleteDish, setKitchenOpen, getAnnouncements,
     createOrder, getKitchenOrders, getAllOrders, updateOrderStatus, subscribeOrders,
     currentUser, registerCustomer, loginCustomer, getProfile, saveProfile, getMyOrders,
-    addReview, getKitchenReviews,
+    addReview, getKitchenReviews, getCoupon,
     getCart, saveCart,
   };
 })();

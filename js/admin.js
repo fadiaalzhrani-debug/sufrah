@@ -10,7 +10,7 @@
   const authView = $('#authView');
   const adminView = $('#adminView');
   const toastEl = $('#toast');
-  const state = { kitchens: [], dishes: [], ann: [], orders: [] };
+  const state = { kitchens: [], dishes: [], ann: [], orders: [], coupons: [] };
 
   let toastTimer;
   function showToast(msg) {
@@ -24,13 +24,14 @@
 
   /* ---------- تحميل البيانات ---------- */
   async function loadAll() {
-    const [k, d, a, o] = await Promise.all([
+    const [k, d, a, o, cp] = await Promise.all([
       sb.from('kitchens').select('*').order('created_at', { ascending: false }),
       sb.from('dishes').select('*').order('created_at', { ascending: false }),
       sb.from('announcements').select('*').order('created_at', { ascending: false }),
       sb.from('orders').select('*').order('created_at', { ascending: false }),
+      sb.from('coupons').select('*').order('created_at', { ascending: false }),
     ]);
-    state.kitchens = k.data || []; state.dishes = d.data || []; state.ann = a.data || []; state.orders = o.data || [];
+    state.kitchens = k.data || []; state.dishes = d.data || []; state.ann = a.data || []; state.orders = o.data || []; state.coupons = cp.data || [];
     render();
   }
 
@@ -100,6 +101,16 @@
         <button class="abtn abtn--danger" data-delorder="${o.id}">حذف</button>
       </div>`;
     }).join('');
+
+    // كوبونات
+    $('#cCount').textContent = state.coupons.length;
+    $('#couponsList').innerHTML = state.coupons.map((c) => `
+      <div class="arow">
+        <div class="arow__main"><span class="arow__emoji">🎁</span>
+          <div><b>${esc(c.code)}</b><small>${c.discount_type === 'percent' ? c.value + '%' : c.value + ' ر.س'} خصم</small></div>
+        </div>
+        <button class="abtn abtn--danger" data-delcoupon="${c.id}">حذف</button>
+      </div>`).join('');
   }
 
   const esc = (s) => String(s == null ? '' : s).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
@@ -141,6 +152,22 @@
     if (error) { showToast('تعذّر الحذف: ' + error.message); return; }
     showToast('🗑️ تم حذف الطلب'); loadAll();
   }
+  async function addCoupon() {
+    const code = ($('#cCode').value || '').trim().toUpperCase();
+    const type = $('#cType').value;
+    const value = Number($('#cValue').value);
+    if (!code || !value) { showToast('اكتب الكود والقيمة'); return; }
+    const { error } = await sb.from('coupons').insert({ code, discount_type: type, value });
+    if (error) { showToast(/duplicate|unique/i.test(error.message) ? 'الكود موجود من قبل' : 'تعذّر: ' + error.message); return; }
+    $('#cCode').value = ''; $('#cValue').value = '';
+    showToast('🎁 تم إضافة الكوبون'); loadAll();
+  }
+  async function delCoupon(id) {
+    if (!confirm('حذف هذا الكوبون؟')) return;
+    const { error } = await sb.from('coupons').delete().eq('id', id);
+    if (error) { showToast('تعذّر الحذف: ' + error.message); return; }
+    showToast('🗑️ تم حذف الكوبون'); loadAll();
+  }
 
   /* ---------- الأحداث ---------- */
   function bind() {
@@ -181,6 +208,8 @@
 
     // إعلان
     $('#annSend').addEventListener('click', sendAnn);
+    // كوبون
+    $('#cAdd').addEventListener('click', addCoupon);
 
     // إجراءات القوائم
     document.body.addEventListener('click', (e) => {
@@ -188,6 +217,7 @@
       const dd = e.target.closest('[data-deld]'); if (dd) { delDish(dd.dataset.deld); return; }
       const da = e.target.closest('[data-delann]'); if (da) { delAnn(da.dataset.delann); return; }
       const dord = e.target.closest('[data-delorder]'); if (dord) { delOrder(dord.dataset.delorder); return; }
+      const dc = e.target.closest('[data-delcoupon]'); if (dc) { delCoupon(dc.dataset.delcoupon); return; }
     });
     document.body.addEventListener('change', (e) => {
       const v = e.target.closest('[data-verify]'); if (v) toggleVerify(v.dataset.verify, v.checked);
