@@ -10,7 +10,7 @@
   const authView = $('#authView');
   const adminView = $('#adminView');
   const toastEl = $('#toast');
-  const state = { kitchens: [], dishes: [], ann: [] };
+  const state = { kitchens: [], dishes: [], ann: [], orders: [] };
 
   let toastTimer;
   function showToast(msg) {
@@ -24,12 +24,13 @@
 
   /* ---------- تحميل البيانات ---------- */
   async function loadAll() {
-    const [k, d, a] = await Promise.all([
+    const [k, d, a, o] = await Promise.all([
       sb.from('kitchens').select('*').order('created_at', { ascending: false }),
       sb.from('dishes').select('*').order('created_at', { ascending: false }),
       sb.from('announcements').select('*').order('created_at', { ascending: false }),
+      sb.from('orders').select('*').order('created_at', { ascending: false }),
     ]);
-    state.kitchens = k.data || []; state.dishes = d.data || []; state.ann = a.data || [];
+    state.kitchens = k.data || []; state.dishes = d.data || []; state.ann = a.data || []; state.orders = o.data || [];
     render();
   }
 
@@ -80,6 +81,24 @@
         <button class="abtn abtn--danger" data-deld="${d.id}">حذف</button>
       </div>`;
     }).join('');
+
+    // طلبات
+    $('#oEmpty').hidden = state.orders.length > 0;
+    $('#oCount').textContent = state.orders.length;
+    $('#ordersList').innerHTML = state.orders.map((o) => {
+      const st = ORDER_STATUS[o.status] || ORDER_STATUS.new;
+      const kName = (state.kitchens.find((k) => k.id === o.kitchen_id) || {}).name || '';
+      const items = (o.items || []).map((it) => `${it.qty}× ${esc(it.name)}`).join('، ');
+      return `
+      <div class="arow">
+        <div class="arow__main">
+          <span class="arow__emoji">📦</span>
+          <div><b>${esc(o.customer_name || '')} <span class="ostatus ostatus--${o.status}">${st.emoji} ${st.label}</span></b>
+            <small>${esc(kName)} · ${o.total} ر.س · ${esc(o.customer_phone || '')} · ${items}</small></div>
+        </div>
+        <button class="abtn abtn--danger" data-delorder="${o.id}">حذف</button>
+      </div>`;
+    }).join('');
   }
 
   const esc = (s) => String(s == null ? '' : s).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
@@ -114,6 +133,12 @@
     const { error } = await sb.from('announcements').delete().eq('id', id);
     if (error) { showToast('تعذّر الحذف: ' + error.message); return; }
     loadAll();
+  }
+  async function delOrder(id) {
+    if (!confirm('حذف هذا الطلب؟')) return;
+    const { error } = await sb.from('orders').delete().eq('id', id);
+    if (error) { showToast('تعذّر الحذف: ' + error.message); return; }
+    showToast('🗑️ تم حذف الطلب'); loadAll();
   }
 
   /* ---------- الأحداث ---------- */
@@ -161,6 +186,7 @@
       const dk = e.target.closest('[data-delk]'); if (dk) { delKitchen(dk.dataset.delk); return; }
       const dd = e.target.closest('[data-deld]'); if (dd) { delDish(dd.dataset.deld); return; }
       const da = e.target.closest('[data-delann]'); if (da) { delAnn(da.dataset.delann); return; }
+      const dord = e.target.closest('[data-delorder]'); if (dord) { delOrder(dord.dataset.delorder); return; }
     });
     document.body.addEventListener('change', (e) => {
       const v = e.target.closest('[data-verify]'); if (v) toggleVerify(v.dataset.verify, v.checked);
@@ -170,6 +196,7 @@
     sb.channel('admin-rt')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'kitchens' }, () => { if (!adminView.hidden) loadAll(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'dishes' }, () => { if (!adminView.hidden) loadAll(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => { if (!adminView.hidden) loadAll(); })
       .subscribe();
   }
 

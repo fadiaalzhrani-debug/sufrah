@@ -77,6 +77,7 @@
     // ضبط تصنيف المطبخ الافتراضي في نموذج الطبق
     $('#dishCuisine').value = account.cuisine;
     renderMyDishes(account);
+    renderOrders(account);
     // إعلانات الأدمن
     SUFRAH.getAnnouncements().then((list) => {
       const b = $('#annBanner');
@@ -115,6 +116,43 @@
         </div>
       </article>`;
     }).join('');
+  }
+
+  /* ---------- الطلبات الواردة ---------- */
+  const fmtT = (s) => { try { return new Date(s).toLocaleString('ar', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' }); } catch { return ''; } };
+  function orderActions(o) {
+    const b = (to, label, cls) => `<button class="abtn ${cls}" data-order="${o.id}" data-to="${to}">${label}</button>`;
+    if (o.status === 'new') return b('preparing', 'قبول ✅', 'abtn--go') + ' ' + b('cancelled', 'رفض', 'abtn--danger');
+    if (o.status === 'preparing') return b('on_the_way', 'بالطريق 🛵', 'abtn--go');
+    if (o.status === 'on_the_way') return b('delivered', 'تم التسليم ✅', 'abtn--go');
+    return '';
+  }
+  function renderOrders(account) {
+    SUFRAH.getKitchenOrders(account.id).then((orders) => {
+      const active = orders.filter((o) => o.status === 'new').length;
+      const badge = $('#ordersBadge');
+      badge.textContent = active; badge.hidden = active === 0;
+      $('#ordersEmpty').hidden = orders.length > 0;
+      $('#ordersList').innerHTML = orders.map((o) => {
+        const st = ORDER_STATUS[o.status] || ORDER_STATUS.new;
+        const items = (o.items || []).map((it) => `${it.qty}× ${escHtml(it.name)}`).join('، ');
+        const dm = (DELIVERY_TYPES[o.delivery_method] || {}).name || '';
+        return `
+        <div class="order order--${o.status}">
+          <div class="order__top">
+            <span class="ostatus ostatus--${o.status}">${st.emoji} ${st.label}</span>
+            <span class="order__time">${fmtT(o.created_at)}</span>
+          </div>
+          <div class="order__cust">👤 ${escHtml(o.customer_name || '')} · 📞 ${escHtml(o.customer_phone || '')}</div>
+          ${o.address ? `<div class="order__addr">📍 ${escHtml(o.address)}</div>` : ''}
+          <div class="order__items">${items}</div>
+          <div class="order__foot">
+            <span class="order__total">${o.total} ر.س · ${dm}</span>
+            <div class="order__actions">${orderActions(o)}</div>
+          </div>
+        </div>`;
+      }).join('');
+    });
   }
 
   /* ---------- نافذة الإضافة ---------- */
@@ -254,6 +292,14 @@
       renderMyDishes(SUFRAH.currentAccount());
       showToast('🗑️ تم حذف الطبق');
     });
+
+    // تحديث حالة الطلب
+    $('#ordersList').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-order]'); if (!btn) return;
+      await SUFRAH.updateOrderStatus(btn.dataset.order, btn.dataset.to);
+      const a = SUFRAH.currentAccount(); if (a) renderOrders(a);
+      showToast('تم تحديث حالة الطلب');
+    });
   }
 
   /* ---------- الإقلاع ---------- */
@@ -267,6 +313,7 @@
     // تحديث أطباق مطبخي لحظياً إذا كان مسجّلاً دخول
     SUFRAH.onChange(() => { const a = SUFRAH.currentAccount(); if (a && !dashView.hidden) renderMyDishes(a); });
     try { await SUFRAH.init(); } catch (e) { console.warn('SUFRAH.init', e); }
+    SUFRAH.subscribeOrders(() => { const a = SUFRAH.currentAccount(); if (a && !dashView.hidden) renderOrders(a); });
     const acc = SUFRAH.currentAccount();
     if (acc) showDash(acc); else showAuth();
   }

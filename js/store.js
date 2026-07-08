@@ -130,6 +130,29 @@ const SUFRAH = (function () {
     return data || [];
   }
 
+  /* ---------- الطلبات ---------- */
+  async function createOrder(order) {
+    const { error } = await sb.from('orders').insert(order);
+    return error ? { ok: false, error: error.message } : { ok: true };
+  }
+  async function getKitchenOrders(kitchenId) {
+    const { data } = await sb.from('orders').select('*').eq('kitchen_id', kitchenId).order('created_at', { ascending: false });
+    return data || [];
+  }
+  async function getAllOrders() {
+    const { data } = await sb.from('orders').select('*').order('created_at', { ascending: false });
+    return data || [];
+  }
+  async function updateOrderStatus(id, status) {
+    const { error } = await sb.from('orders').update({ status }).eq('id', id);
+    return error ? { ok: false, error: error.message } : { ok: true };
+  }
+  function subscribeOrders(cb) {
+    return sb.channel('orders-rt-' + Math.random().toString(36).slice(2))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, cb)
+      .subscribe();
+  }
+
   /* ---------- سلة العميل (محلية على جهازه) ---------- */
   const CART_KEY = 'sufrah_cart_v1';
   const getCart = () => { try { return JSON.parse(localStorage.getItem(CART_KEY)) || {}; } catch { return {}; } };
@@ -139,6 +162,7 @@ const SUFRAH = (function () {
     init, onChange, refresh,
     allFamilies, allDishes, familyById, currentAccount, dishesByAccount,
     register, login, logout, addDish, deleteDish, getAnnouncements,
+    createOrder, getKitchenOrders, getAllOrders, updateOrderStatus, subscribeOrders,
     getCart, saveCart,
   };
 })();

@@ -49,6 +49,15 @@ const DELIVERY_TYPES = {
 };
 const ALL_DELIVERY = ['pickup', 'family', 'courier'];
 
+// حالات الطلب
+const ORDER_STATUS = {
+  new:        { label: 'جديد',         emoji: '🆕' },
+  preparing:  { label: 'قيد التحضير',  emoji: '👩‍🍳' },
+  on_the_way: { label: 'في الطريق',    emoji: '🛵' },
+  delivered:  { label: 'تم التسليم',   emoji: '✅' },
+  cancelled:  { label: 'ملغي',         emoji: '❌' },
+};
+
 // الأسر المنتجة (Seed)
 const FAMILIES = [
   { id: 'f1', name: 'مطبخ أم سعود', spec: 'أكلات شعبية سعودية', cuisine: 'saudi',  rating: 4.9, time: '٤٥ د', cover: '🍛', grad: G.orange,     city: 'الرياض' },

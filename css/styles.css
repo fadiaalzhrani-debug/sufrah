@@ -721,6 +721,35 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .ann-banner { display: flex; flex-direction: column; gap: 8px; margin-bottom: 22px; }
 .ann-item { background: var(--primary-soft); color: var(--primary-dark); border: 1px solid #F5D3B8; border-radius: 14px; padding: 12px 16px; font-weight: 700; font-size: 14px; }
 
+/* ===================================================
+   الطلبات + نموذج إتمام الطلب
+   =================================================== */
+.checkout-form { display: grid; gap: 8px; margin-bottom: 14px; }
+.checkout-form input { width: 100%; font-family: inherit; font-size: 14px; padding: 11px 13px; border: 1.5px solid var(--line); border-radius: 12px; outline: none; background: var(--bg); color: var(--ink); }
+.checkout-form input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+
+.orders-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 8px; }
+.order { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: var(--shadow-sm); }
+.order--new { border-color: var(--primary); box-shadow: 0 6px 18px rgba(232, 89, 12, .12); }
+.order__top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.order__time { font-size: 12px; color: var(--muted); }
+.order__cust { font-size: 14px; font-weight: 700; }
+.order__addr { font-size: 13px; color: var(--ink-2); margin-top: 3px; }
+.order__items { font-size: 13.5px; color: var(--ink-2); margin: 8px 0; line-height: 1.6; }
+.order__foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.order__total { font-weight: 800; color: var(--primary-dark); font-size: 14px; }
+.order__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.ostatus { font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+.ostatus--new { background: var(--primary-soft); color: var(--primary-dark); }
+.ostatus--preparing { background: #FEF3D7; color: #9A5B00; }
+.ostatus--on_the_way { background: #E0EEFB; color: #185FA5; }
+.ostatus--delivered { background: var(--accent-soft); color: var(--accent); }
+.ostatus--cancelled { background: #FEECEC; color: #C0392B; }
+.abtn--go { background: var(--accent); color: #fff; }
+.abtn--go:hover { filter: brightness(1.06); }
+.obadge { background: var(--primary); color: #fff; font-size: 13px; font-weight: 800; padding: 2px 10px; border-radius: 999px; margin-inline-start: 6px; }
+
 @media (max-width: 640px) {
   .astats { grid-template-columns: 1fr 1fr; }
   .acompose { flex-direction: column; }

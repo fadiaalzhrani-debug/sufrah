@@ -310,13 +310,37 @@
     $('#heroSearch').addEventListener('input', (e) => { syncSearchInputs(e.target.value, 'hero'); onSearch(e.target.value); });
     $('#heroSearchBtn').addEventListener('click', () => document.getElementById('menu').scrollIntoView({ behavior: 'smooth' }));
 
-    $('#checkoutBtn').addEventListener('click', () => {
+    $('#checkoutBtn').addEventListener('click', async () => {
       if (cartQtyTotal() === 0) { showToast('سلتك فاضية 🛒'); return; }
+      const name = ($('#coName').value || '').trim();
+      const phone = ($('#coPhone').value || '').trim();
+      const address = ($('#coAddress').value || '').trim();
+      if (!name || !phone) { showToast('اكتب الاسم ورقم الجوال 📞'); return; }
+
+      // نجمّع الطلب حسب كل مطبخ (طلب مستقل لكل أسرة)
+      const groups = {};
+      Object.entries(cart).forEach(([id, qty]) => {
+        const d = dishById(id); if (!d) return;
+        (groups[d.familyId] = groups[d.familyId] || []).push({ dish_id: id, name: d.name, price: d.price, qty });
+      });
       const fee = DELIVERY_TYPES[deliveryMethod].fee;
-      const total = priceLabel(cartSubtotal() + fee);
-      const method = DELIVERY_TYPES[deliveryMethod].name;
-      cart = {}; SUFRAH.saveCart(cart); updateCartUI(); closeDrawer();
-      showToast(`🎉 تم استلام طلبك (${method}) — الإجمالي ${total}. بالعافية!`);
+      const btn = $('#checkoutBtn'); btn.disabled = true; btn.textContent = '⏳ جاري إرسال الطلب…';
+      let okCount = 0;
+      for (const [kid, items] of Object.entries(groups)) {
+        const subtotal = items.reduce((s, it) => s + it.price * it.qty, 0);
+        const res = await SUFRAH.createOrder({
+          kitchen_id: kid, customer_name: name, customer_phone: phone, address,
+          delivery_method: deliveryMethod, items, subtotal, delivery_fee: fee, total: subtotal + fee,
+        });
+        if (res.ok) okCount++;
+      }
+      btn.disabled = false; btn.textContent = 'إتمام الطلب';
+      if (okCount > 0) {
+        cart = {}; SUFRAH.saveCart(cart); updateCartUI(); closeDrawer();
+        showToast('🎉 تم إرسال طلبك للأسرة! بتجهّزه وتتواصل معك.');
+      } else {
+        showToast('تعذّر إرسال الطلب، حاول مرة ثانية');
+      }
     });
   }
 
