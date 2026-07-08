@@ -89,12 +89,13 @@
       const st = ORDER_STATUS[o.status] || ORDER_STATUS.new;
       const kName = (state.kitchens.find((k) => k.id === o.kitchen_id) || {}).name || '';
       const items = (o.items || []).map((it) => `${it.qty}× ${esc(it.name)}`).join('، ');
+      const pm = (PAYMENT_TYPES[o.payment_method] || PAYMENT_TYPES.cash);
       return `
       <div class="arow">
         <div class="arow__main">
           <span class="arow__emoji">📦</span>
           <div><b>${esc(o.customer_name || '')} <span class="ostatus ostatus--${o.status}">${st.emoji} ${st.label}</span></b>
-            <small>${esc(kName)} · ${o.total} ر.س · ${esc(o.customer_phone || '')} · ${items}</small></div>
+            <small>${esc(kName)} · ${o.total} ر.س · ${pm.emoji} · ${esc(o.customer_phone || '')} · ${items}</small></div>
         </div>
         <button class="abtn abtn--danger" data-delorder="${o.id}">حذف</button>
       </div>`;

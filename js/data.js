@@ -49,6 +49,12 @@ const DELIVERY_TYPES = {
 };
 const ALL_DELIVERY = ['pickup', 'family', 'courier'];
 
+// طرق الدفع
+const PAYMENT_TYPES = {
+  cash: { id: 'cash', name: 'عند الاستلام (كاش)', emoji: '💵', note: 'ادفع نقداً عند وصول الطلب' },
+  card: { id: 'card', name: 'بطاقة مدى/ائتمان',    emoji: '💳', note: 'قريباً — عند ربط بوابة الدفع' },
+};
+
 // حالات الطلب
 const ORDER_STATUS = {
   new:        { label: 'جديد',         emoji: '🆕' },

@@ -137,6 +137,7 @@
         const st = ORDER_STATUS[o.status] || ORDER_STATUS.new;
         const items = (o.items || []).map((it) => `${it.qty}× ${escHtml(it.name)}`).join('، ');
         const dm = (DELIVERY_TYPES[o.delivery_method] || {}).name || '';
+        const pm = (PAYMENT_TYPES[o.payment_method] || PAYMENT_TYPES.cash);
         return `
         <div class="order order--${o.status}">
           <div class="order__top">
@@ -147,7 +148,7 @@
           ${o.address ? `<div class="order__addr">📍 ${escHtml(o.address)}</div>` : ''}
           <div class="order__items">${items}</div>
           <div class="order__foot">
-            <span class="order__total">${o.total} ر.س · ${dm}</span>
+            <span class="order__total">${o.total} ر.س · ${dm} · ${pm.emoji} ${pm.name}</span>
             <div class="order__actions">${orderActions(o)}</div>
           </div>
         </div>`;

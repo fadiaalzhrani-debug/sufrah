@@ -9,6 +9,7 @@
   let activeCuisine = 'all';
   let searchTerm = '';
   let deliveryMethod = 'pickup';
+  let paymentMethod = 'cash';
   let cart = SUFRAH.getCart();
   const CITIES = ['كل المدن', 'الرياض', 'جدة', 'مكة', 'المدينة المنورة', 'الدمام', 'الخبر', 'القصيم', 'الطائف', 'الأحساء', 'أبها', 'تبوك', 'حائل', 'جازان'];
   let loc = (function () { try { return JSON.parse(localStorage.getItem('sufrah_location')) || { city: 'كل المدن', district: '' }; } catch { return { city: 'كل المدن', district: '' }; } })();
@@ -252,6 +253,19 @@
       </div>`;
   }
 
+  function renderPaymentOptions() {
+    return `
+      <div class="delivery-pick">
+        <div class="delivery-pick__title">طريقة الدفع</div>
+        ${Object.values(PAYMENT_TYPES).map((t) => `
+          <label class="dopt ${t.id === paymentMethod ? 'is-active' : ''}">
+            <input type="radio" name="payment" value="${t.id}" ${t.id === paymentMethod ? 'checked' : ''} />
+            <span class="dopt__emoji">${t.emoji}</span>
+            <span class="dopt__info"><strong>${t.name}</strong><small>${t.note}</small></span>
+          </label>`).join('')}
+      </div>`;
+  }
+
   function updateCartUI() {
     const count = cartQtyTotal();
     cartCount.textContent = count;
@@ -286,7 +300,7 @@
           <button class="cart-item__remove" data-remove="${id}" aria-label="حذف">🗑️</button>
         </div>`;
       }).join('');
-      drawerBody.innerHTML = items + renderDeliveryOptions();
+      drawerBody.innerHTML = items + renderDeliveryOptions() + renderPaymentOptions();
     }
 
     const subtotal = cartSubtotal();
@@ -460,6 +474,7 @@
     });
     drawerBody.addEventListener('change', (e) => {
       if (e.target.name === 'delivery') { deliveryMethod = e.target.value; updateCartUI(); }
+      if (e.target.name === 'payment') { paymentMethod = e.target.value; updateCartUI(); }
     });
 
     $('#cartBtn').addEventListener('click', openDrawer);
@@ -490,6 +505,7 @@
       const phone = ($('#coPhone').value || '').trim();
       const address = ($('#coAddress').value || '').trim();
       if (!name || !phone) { showToast('اكتب الاسم ورقم الجوال 📞'); return; }
+      if (paymentMethod === 'card') { showToast('💳 الدفع بالبطاقة قريباً — اختر «عند الاستلام» حالياً'); return; }
 
       // نجمّع الطلب حسب كل مطبخ (طلب مستقل لكل أسرة)
       const groups = {};
@@ -504,7 +520,8 @@
         const subtotal = items.reduce((s, it) => s + it.price * it.qty, 0);
         const res = await SUFRAH.createOrder({
           kitchen_id: kid, customer_name: name, customer_phone: phone, address,
-          delivery_method: deliveryMethod, items, subtotal, delivery_fee: fee, total: subtotal + fee,
+          delivery_method: deliveryMethod, payment_method: paymentMethod,
+          items, subtotal, delivery_fee: fee, total: subtotal + fee,
         });
         if (res.ok) okCount++;
       }
