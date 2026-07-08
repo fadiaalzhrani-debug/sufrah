@@ -43,11 +43,17 @@ const CUISINE_BY_ID = Object.fromEntries(CUISINES.map(c => [c.id, c]));
 
 // أنواع التوصيل الثلاثة
 const DELIVERY_TYPES = {
-  pickup:  { id: 'pickup',  name: 'استلام من المنزل', emoji: '🏠', fee: 0,  note: 'بدون رسوم توصيل' },
-  family:  { id: 'family',  name: 'توصيل الأسرة',      emoji: '🛵', fee: 10, note: 'الأسرة توصّله لك بمبلغ رمزي' },
-  courier: { id: 'courier', name: 'مناديب سُفرة',      emoji: '🚚', fee: 15, note: 'مندوب المنصة يوصّله بسرعة' },
+  pickup: { id: 'pickup', name: 'استلام من المنزل', emoji: '🏠', fee: 0,  note: 'بدون رسوم — تستلمه بنفسك' },
+  family: { id: 'family', name: 'توصيل الأسرة',      emoji: '🛵', fee: 10, note: 'الأسرة توصّله حسب المسافة' },
 };
-const ALL_DELIVERY = ['pickup', 'family', 'courier'];
+const ALL_DELIVERY = ['pickup', 'family'];
+
+// رسوم توصيل الأسرة حسب المسافة
+const DELIVERY_DISTANCES = {
+  near:   { id: 'near',   name: 'قريب',  fee: 10 },
+  medium: { id: 'medium', name: 'متوسط', fee: 15 },
+  far:    { id: 'far',    name: 'بعيد',  fee: 20 },
+};
 
 // طرق الدفع
 const PAYMENT_TYPES = {

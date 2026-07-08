@@ -9,6 +9,7 @@
   let activeCuisine = 'all';
   let searchTerm = '';
   let deliveryMethod = 'pickup';
+  let deliveryDistance = 'near';
   let paymentMethod = 'cash';
   let cart = SUFRAH.getCart();
   const CITIES = ['كل المدن', 'الرياض', 'جدة', 'مكة', 'المدينة المنورة', 'الدمام', 'الخبر', 'القصيم', 'الطائف', 'الأحساء', 'أبها', 'تبوك', 'حائل', 'جازان'];
@@ -96,7 +97,7 @@
   }
 
   function deliveryBadges(d) {
-    const list = d.delivery && d.delivery.length ? d.delivery : ALL_DELIVERY;
+    const list = (d.delivery && d.delivery.length ? d.delivery : ALL_DELIVERY).filter((k) => DELIVERY_TYPES[k]);
     return list.map((k) => `<span class="dbadge" title="${DELIVERY_TYPES[k].name}">${DELIVERY_TYPES[k].emoji}</span>`).join('');
   }
   function dishThumb(d) {
@@ -241,20 +242,35 @@
   }
   function removeItem(id) { delete cart[id]; SUFRAH.saveCart(cart); updateCartUI(); }
 
+  function deliveryFee() {
+    if (deliveryMethod === 'pickup') return 0;
+    return (DELIVERY_DISTANCES[deliveryDistance] || DELIVERY_DISTANCES.near).fee;
+  }
   function renderDeliveryOptions() {
+    const distance = deliveryMethod === 'family' ? `
+      <div class="distance-pick">
+        <div class="distance-pick__label">المسافة تقريباً:</div>
+        ${Object.values(DELIVERY_DISTANCES).map((d) => `
+          <label class="dchip ${d.id === deliveryDistance ? 'is-active' : ''}">
+            <input type="radio" name="distance" value="${d.id}" ${d.id === deliveryDistance ? 'checked' : ''} />
+            ${d.name} · ${d.fee} ر.س
+          </label>`).join('')}
+      </div>` : '';
     return `
       <div class="delivery-pick">
         <div class="delivery-pick__title">طريقة الاستلام</div>
         ${ALL_DELIVERY.map((k) => {
           const t = DELIVERY_TYPES[k];
+          const fl = k === 'pickup' ? 'مجاناً' : 'حسب المسافة';
           return `
           <label class="dopt ${k === deliveryMethod ? 'is-active' : ''}">
             <input type="radio" name="delivery" value="${k}" ${k === deliveryMethod ? 'checked' : ''} />
             <span class="dopt__emoji">${t.emoji}</span>
             <span class="dopt__info"><strong>${t.name}</strong><small>${t.note}</small></span>
-            <span class="dopt__fee">${t.fee ? priceLabel(t.fee) : 'مجاناً'}</span>
+            <span class="dopt__fee">${fl}</span>
           </label>`;
         }).join('')}
+        ${distance}
       </div>`;
   }
 
@@ -309,7 +325,7 @@
     }
 
     const subtotal = cartSubtotal();
-    const fee = subtotal > 0 ? DELIVERY_TYPES[deliveryMethod].fee : 0;
+    const fee = subtotal > 0 ? deliveryFee() : 0;
     $('#subtotal').textContent = priceLabel(subtotal);
     $('#delivery').textContent = fee ? priceLabel(fee) : 'مجاناً';
     $('#total').textContent = priceLabel(subtotal + fee);
@@ -526,6 +542,7 @@
     });
     drawerBody.addEventListener('change', (e) => {
       if (e.target.name === 'delivery') { deliveryMethod = e.target.value; updateCartUI(); }
+      if (e.target.name === 'distance') { deliveryDistance = e.target.value; updateCartUI(); }
       if (e.target.name === 'payment') { paymentMethod = e.target.value; updateCartUI(); }
     });
 
@@ -562,6 +579,7 @@
       const address = ($('#coAddress').value || '').trim();
       if (!name || !phone) { showToast('اكتب الاسم ورقم الجوال 📞'); return; }
       if (paymentMethod === 'card') { showToast('💳 الدفع بالبطاقة قريباً — اختر «عند الاستلام» حالياً'); return; }
+      const fee = deliveryFee();
 
       // نجمّع الطلب حسب كل مطبخ (طلب مستقل لكل أسرة)
       const groups = {};
@@ -569,7 +587,6 @@
         const d = dishById(id); if (!d) return;
         (groups[d.familyId] = groups[d.familyId] || []).push({ dish_id: id, name: d.name, price: d.price, qty });
       });
-      const fee = DELIVERY_TYPES[deliveryMethod].fee;
       const btn = $('#checkoutBtn'); btn.disabled = true; btn.textContent = '⏳ جاري إرسال الطلب…';
       let okCount = 0;
       for (const [kid, items] of Object.entries(groups)) {

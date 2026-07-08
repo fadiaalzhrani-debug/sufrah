@@ -534,6 +534,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .dopt__info strong { font-size: 14px; }
 .dopt__info small { font-size: 12px; color: var(--muted); }
 .dopt__fee { font-weight: 800; color: var(--primary-dark); font-size: 14px; }
+.distance-pick { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 2px 4px; align-items: center; }
+.distance-pick__label { font-size: 13px; color: var(--muted); font-weight: 700; width: 100%; margin-bottom: 2px; }
+.dchip { display: inline-flex; align-items: center; gap: 4px; padding: 8px 14px; border: 1.5px solid var(--line); border-radius: 999px; font-size: 13px; font-weight: 700; color: var(--ink-2); cursor: pointer; transition: all .15s; }
+.dchip input { display: none; }
+.dchip.is-active { background: var(--primary-soft); border-color: var(--primary); color: var(--primary-dark); }
 
 /* ===================================================
    صفحة الأسر المنتجة
