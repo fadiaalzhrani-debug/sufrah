@@ -750,6 +750,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .abtn--go:hover { filter: brightness(1.06); }
 .obadge { background: var(--primary); color: #fff; font-size: 13px; font-weight: 800; padding: 2px 10px; border-radius: 999px; margin-inline-start: 6px; }
 
+/* حساب العميل */
+.acct-btn { width: 50px; height: 50px; border-radius: 14px; background: var(--soft); display: grid; place-items: center; font-size: 22px; transition: background .18s; flex-shrink: 0; }
+.acct-btn:hover { background: var(--primary-soft); }
+.acct-btn.is-in { background: var(--accent-soft); box-shadow: inset 0 0 0 2px var(--accent); }
+.acct-hello { font-size: 20px; font-weight: 900; }
+.acct-email { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.acct-oh { font-size: 16px; font-weight: 800; margin: 0 0 12px; }
+
 @media (max-width: 640px) {
   .astats { grid-template-columns: 1fr 1fr; }
   .acompose { flex-direction: column; }

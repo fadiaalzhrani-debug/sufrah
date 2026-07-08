@@ -45,6 +45,8 @@
 
       <a href="partner.html" class="partner-link">🍳 سجّل مطبخك</a>
 
+      <button class="acct-btn" id="accountBtn" type="button" aria-label="حسابي">👤</button>
+
       <button class="cart-btn" id="cartBtn" type="button" aria-label="السلة">
         <span class="cart-btn__icon">🛒</span>
         <span class="cart-btn__count" id="cartCount">0</span>
@@ -261,6 +263,16 @@
         <a href="terms.html#terms" target="_blank" rel="noopener">شروط الاستخدام</a> و<a href="terms.html#privacy" target="_blank" rel="noopener">سياسة الخصوصية</a>.</p>
     </div>
   </aside>
+
+  <!-- ===== حساب العميل ===== -->
+  <div class="overlay" id="acctOverlay"></div>
+  <div class="modal" id="acctModal" aria-label="حسابي">
+    <div class="modal__head">
+      <h3>حسابي 👤</h3>
+      <button class="drawer__close" id="acctClose" aria-label="إغلاق">✕</button>
+    </div>
+    <div class="modal__body form" id="acctBody"></div>
+  </div>
 
   <div class="toast" id="toast"></div>
 

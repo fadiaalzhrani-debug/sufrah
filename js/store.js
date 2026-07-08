@@ -132,8 +132,44 @@ const SUFRAH = (function () {
 
   /* ---------- الطلبات ---------- */
   async function createOrder(order) {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) order.customer_id = session.user.id;
     const { error } = await sb.from('orders').insert(order);
     return error ? { ok: false, error: error.message } : { ok: true };
+  }
+
+  /* ---------- حسابات العملاء ---------- */
+  async function currentUser() {
+    const { data: { session } } = await sb.auth.getSession();
+    return session ? session.user : null;
+  }
+  async function registerCustomer(data) {
+    const email = (data.email || '').trim();
+    if (!email || !data.password) return { ok: false, error: 'أكمل البريد وكلمة المرور' };
+    const { data: su, error } = await sb.auth.signUp({ email, password: data.password });
+    if (error) return { ok: false, error: /registered|already/i.test(error.message) ? 'هذا البريد مسجّل من قبل' : error.message };
+    if (!su.session) return { ok: false, error: 'تأكيد الإيميل مفعّل — عطّله من إعدادات Supabase.' };
+    await sb.from('profiles').upsert({ id: su.user.id, full_name: (data.name || '').trim(), phone: (data.phone || '').trim() });
+    return { ok: true, user: su.user };
+  }
+  async function loginCustomer(email, password) {
+    const { error } = await sb.auth.signInWithPassword({ email: (email || '').trim(), password });
+    return error ? { ok: false, error: 'البريد أو كلمة المرور غير صحيحة' } : { ok: true };
+  }
+  async function getProfile() {
+    const u = await currentUser(); if (!u) return null;
+    const { data } = await sb.from('profiles').select('*').eq('id', u.id).maybeSingle();
+    return { id: u.id, email: u.email, full_name: (data && data.full_name) || '', phone: (data && data.phone) || '', address: (data && data.address) || '' };
+  }
+  async function saveProfile(p) {
+    const u = await currentUser(); if (!u) return { ok: false };
+    const { error } = await sb.from('profiles').upsert({ id: u.id, full_name: p.name, phone: p.phone, address: p.address });
+    return error ? { ok: false, error: error.message } : { ok: true };
+  }
+  async function getMyOrders() {
+    const u = await currentUser(); if (!u) return [];
+    const { data } = await sb.from('orders').select('*').eq('customer_id', u.id).order('created_at', { ascending: false });
+    return data || [];
   }
   async function getKitchenOrders(kitchenId) {
     const { data } = await sb.from('orders').select('*').eq('kitchen_id', kitchenId).order('created_at', { ascending: false });
@@ -163,6 +199,7 @@ const SUFRAH = (function () {
     allFamilies, allDishes, familyById, currentAccount, dishesByAccount,
     register, login, logout, addDish, deleteDish, getAnnouncements,
     createOrder, getKitchenOrders, getAllOrders, updateOrderStatus, subscribeOrders,
+    currentUser, registerCustomer, loginCustomer, getProfile, saveProfile, getMyOrders,
     getCart, saveCart,
   };
 })();

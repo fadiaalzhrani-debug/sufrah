@@ -25,6 +25,9 @@
   const drawerBody = $('#drawerBody');
   const cartCount = $('#cartCount');
   const toastEl = $('#toast');
+  const acctOverlay = $('#acctOverlay');
+  const acctModal = $('#acctModal');
+  const acctBody = $('#acctBody');
 
   const priceLabel = (n) => `${n} ر.س`;
   const dishById = (id) => SUFRAH.allDishes().find((d) => d.id === id);
@@ -242,7 +245,7 @@
   }
 
   /* ---------- فتح/إغلاق ---------- */
-  function openDrawer() { drawer.classList.add('is-open'); overlay.classList.add('is-open'); document.body.style.overflow = 'hidden'; }
+  function openDrawer() { drawer.classList.add('is-open'); overlay.classList.add('is-open'); document.body.style.overflow = 'hidden'; prefillCheckout(); }
   function closeDrawer() { drawer.classList.remove('is-open'); overlay.classList.remove('is-open'); document.body.style.overflow = ''; }
 
   /* ---------- تنبيه ---------- */
@@ -257,6 +260,79 @@
     const h = $('#searchInput'), hero = $('#heroSearch');
     if (except !== 'header' && h) h.value = val;
     if (except !== 'hero' && hero) hero.value = val;
+  }
+
+  /* ---------- حساب العميل ---------- */
+  const escH = (s) => String(s == null ? '' : s).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+  async function refreshAcctBtn() {
+    const u = await SUFRAH.currentUser();
+    $('#accountBtn').classList.toggle('is-in', !!u);
+  }
+  function openAcct() { acctModal.classList.add('is-open'); acctOverlay.classList.add('is-open'); document.body.style.overflow = 'hidden'; renderAcct(); }
+  function closeAcct() { acctModal.classList.remove('is-open'); acctOverlay.classList.remove('is-open'); document.body.style.overflow = ''; }
+  function orderCardRO(o) {
+    const st = ORDER_STATUS[o.status] || ORDER_STATUS.new;
+    const items = (o.items || []).map((it) => `${it.qty}× ${escH(it.name)}`).join('، ');
+    return `<div class="order order--${o.status}">
+      <div class="order__top"><span class="ostatus ostatus--${o.status}">${st.emoji} ${st.label}</span><span class="order__total">${o.total} ر.س</span></div>
+      <div class="order__items">${items}</div></div>`;
+  }
+  async function renderAcct() {
+    const user = await SUFRAH.currentUser();
+    if (!user) {
+      acctBody.innerHTML = `
+        <div class="tabs">
+          <button class="tab is-active" data-atab="login">دخول</button>
+          <button class="tab" data-atab="register">حساب جديد</button>
+        </div>
+        <form id="custLogin">
+          <div class="field"><label>البريد الإلكتروني</label><input type="email" name="email" required placeholder="name@example.com" /></div>
+          <div class="field"><label>كلمة المرور</label><input type="password" name="password" required placeholder="••••••••" /></div>
+          <p class="form__error" id="clErr" hidden></p>
+          <button class="btn btn--primary btn--block" type="submit">دخول</button>
+        </form>
+        <form id="custReg" hidden>
+          <div class="field"><label>الاسم</label><input type="text" name="name" required placeholder="اسمك" /></div>
+          <div class="field"><label>رقم الجوال</label><input type="tel" name="phone" placeholder="05xxxxxxxx" /></div>
+          <div class="field"><label>البريد الإلكتروني</label><input type="email" name="email" required placeholder="name@example.com" /></div>
+          <div class="field"><label>كلمة المرور</label><input type="password" name="password" required placeholder="••••••••" /></div>
+          <p class="form__error" id="crErr" hidden></p>
+          <button class="btn btn--primary btn--block" type="submit">إنشاء الحساب</button>
+        </form>`;
+      acctBody.querySelectorAll('[data-atab]').forEach((t) => t.addEventListener('click', () => {
+        acctBody.querySelectorAll('.tab').forEach((x) => x.classList.remove('is-active')); t.classList.add('is-active');
+        const isLogin = t.dataset.atab === 'login';
+        $('#custLogin').hidden = !isLogin; $('#custReg').hidden = isLogin;
+      }));
+      $('#custLogin').addEventListener('submit', async (e) => {
+        e.preventDefault(); const fd = new FormData(e.target); const err = $('#clErr');
+        const res = await SUFRAH.loginCustomer(fd.get('email'), fd.get('password'));
+        if (!res.ok) { err.textContent = res.error; err.hidden = false; return; }
+        showToast('أهلاً فيك 👋'); refreshAcctBtn(); renderAcct();
+      });
+      $('#custReg').addEventListener('submit', async (e) => {
+        e.preventDefault(); const fd = new FormData(e.target); const err = $('#crErr');
+        const res = await SUFRAH.registerCustomer({ name: fd.get('name'), phone: fd.get('phone'), email: fd.get('email'), password: fd.get('password') });
+        if (!res.ok) { err.textContent = res.error; err.hidden = false; return; }
+        showToast('🎉 تم إنشاء حسابك'); refreshAcctBtn(); renderAcct();
+      });
+    } else {
+      const p = await SUFRAH.getProfile();
+      const orders = await SUFRAH.getMyOrders();
+      acctBody.innerHTML = `
+        <div class="acct-hello">أهلاً ${escH(p.full_name || 'بك')} 👋</div>
+        <div class="acct-email">${escH(p.email)}</div>
+        <button class="ghost-btn" id="custLogout" style="width:100%;margin:12px 0 20px">تسجيل الخروج</button>
+        <h4 class="acct-oh">طلباتي (${orders.length})</h4>
+        <div class="orders-list">${orders.length ? orders.map(orderCardRO).join('') : '<div class="aempty">ما عندك طلبات بعد</div>'}</div>`;
+      $('#custLogout').addEventListener('click', async () => { await SUFRAH.logout(); showToast('تم تسجيل الخروج'); refreshAcctBtn(); renderAcct(); });
+    }
+  }
+  async function prefillCheckout() {
+    const p = await SUFRAH.getProfile(); if (!p) return;
+    if (!$('#coName').value) $('#coName').value = p.full_name || '';
+    if (!$('#coPhone').value) $('#coPhone').value = p.phone || '';
+    if (!$('#coAddress').value) $('#coAddress').value = p.address || '';
   }
 
   /* ---------- الأحداث ---------- */
@@ -303,7 +379,10 @@
     $('#cartBtn').addEventListener('click', openDrawer);
     $('#drawerClose').addEventListener('click', closeDrawer);
     overlay.addEventListener('click', closeDrawer);
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+    $('#accountBtn').addEventListener('click', openAcct);
+    $('#acctClose').addEventListener('click', closeAcct);
+    acctOverlay.addEventListener('click', closeAcct);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeDrawer(); closeAcct(); } });
 
     const onSearch = (val) => { closeKitchen(); searchTerm = val; renderDishes(); };
     $('#searchInput').addEventListener('input', (e) => { syncSearchInputs(e.target.value, 'header'); onSearch(e.target.value); });
@@ -336,6 +415,7 @@
       }
       btn.disabled = false; btn.textContent = 'إتمام الطلب';
       if (okCount > 0) {
+        SUFRAH.saveProfile({ name, phone, address });
         cart = {}; SUFRAH.saveCart(cart); updateCartUI(); closeDrawer();
         showToast('🎉 تم إرسال طلبك للأسرة! بتجهّزه وتتواصل معك.');
       } else {
@@ -354,6 +434,7 @@
     updateCartUI(); bindEvents();
     SUFRAH.onChange(renderAll);
     try { await SUFRAH.init(); } catch (e) { console.warn('SUFRAH.init', e); }
+    refreshAcctBtn();
   }
   document.addEventListener('DOMContentLoaded', init);
 })();
