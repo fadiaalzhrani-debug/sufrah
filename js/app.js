@@ -351,11 +351,32 @@
   }
 
   /* ---------- الموقع ---------- */
+  const DISTRICTS = {
+    'الرياض': ['النرجس', 'الياسمين', 'العليا', 'الملقا', 'الربيع', 'النخيل', 'غرناطة', 'قرطبة', 'الحمراء', 'الروضة', 'المروج', 'النزهة', 'الملز', 'حطين', 'الصحافة', 'السويدي', 'العزيزية'],
+    'جدة': ['الروضة', 'الحمراء', 'السلامة', 'النعيم', 'الشاطئ', 'الصفا', 'المرجان', 'أبحر الشمالية', 'النزهة', 'البوادي', 'الفيصلية', 'الربوة'],
+    'مكة': ['العزيزية', 'الشوقية', 'النسيم', 'الزاهر', 'الرصيفة', 'العوالي', 'الكعكية', 'الشرائع'],
+    'المدينة المنورة': ['قباء', 'العوالي', 'الحرة الشرقية', 'العزيزية', 'الدفاع', 'الخالدية', 'شوران'],
+    'الدمام': ['الشاطئ', 'الفيصلية', 'النور', 'الجلوية', 'الأمانة', 'البادية', 'الروضة', 'الأنوار'],
+    'الخبر': ['العقربية', 'الراكة', 'الثقبة', 'الحزام الذهبي', 'اليرموك', 'الخزامى', 'الجسر'],
+    'القصيم': ['الصفراء', 'الروضة', 'النهضة', 'الريان', 'الملك فهد', 'الإسكان'],
+    'الطائف': ['شهار', 'الحوية', 'الشفا', 'قروى', 'الفيصلية', 'معشي'],
+    'الأحساء': ['المبرز', 'الهفوف', 'الطرف', 'العيون', 'المزروعية'],
+    'أبها': ['المنسك', 'الموظفين', 'النميص', 'الخالدية', 'المفتاحة'],
+    'تبوك': ['العزيزية', 'المروج', 'الورود', 'الفيصلية', 'السلطانة'],
+    'حائل': ['النقرة', 'المطار', 'الخزامى', 'الوسيطاء', 'برزان'],
+    'جازان': ['الروضة', 'الصفا', 'المطار', 'الشاطئ', 'المحمدية'],
+  };
   function saveLoc() { localStorage.setItem('sufrah_location', JSON.stringify(loc)); }
   function updateLocHeader() { $('#locationText').textContent = loc.city + (loc.district ? ' — ' + loc.district : ''); }
   function fillLocCities() { $('#locCity').innerHTML = CITIES.map((c) => `<option value="${c}">${c}</option>`).join(''); }
+  function fillDistricts(city) {
+    const list = DISTRICTS[city] || [];
+    $('#locDistrict').innerHTML = '<option value="">كل الأحياء</option>' + list.map((d) => `<option value="${d}">${d}</option>`).join('');
+  }
   function openLoc() {
-    $('#locCity').value = loc.city; $('#locDistrict').value = loc.district || '';
+    $('#locCity').value = loc.city;
+    fillDistricts(loc.city);
+    $('#locDistrict').value = loc.district || '';
     locModal.classList.add('is-open'); locOverlay.classList.add('is-open'); document.body.style.overflow = 'hidden';
   }
   function closeLoc() { locModal.classList.remove('is-open'); locOverlay.classList.remove('is-open'); document.body.style.overflow = ''; }
@@ -410,6 +431,7 @@
     $('#locationBtn').addEventListener('click', openLoc);
     $('#locClose').addEventListener('click', closeLoc);
     locOverlay.addEventListener('click', closeLoc);
+    $('#locCity').addEventListener('change', (e) => fillDistricts(e.target.value));
     $('#locSave').addEventListener('click', () => {
       loc = { city: $('#locCity').value, district: ($('#locDistrict').value || '').trim() };
       saveLoc(); updateLocHeader(); renderFamilies(); renderDishes(); closeLoc();
