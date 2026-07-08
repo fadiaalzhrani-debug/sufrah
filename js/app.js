@@ -8,6 +8,7 @@
   let activeCategory = 'all';
   let activeCuisine = 'all';
   let searchTerm = '';
+  let sortBy = 'new';
   let deliveryMethod = 'pickup';
   let deliveryDistance = 'near';
   let paymentMethod = 'cash';
@@ -128,8 +129,20 @@
       </article>`;
   }
 
+  function sortDishes(list) {
+    const arr = list.slice();
+    if (sortBy === 'price_asc') arr.sort((a, b) => a.price - b.price);
+    else if (sortBy === 'price_desc') arr.sort((a, b) => b.price - a.price);
+    else if (sortBy === 'rating') arr.sort((a, b) => {
+      const ra = (SUFRAH.familyById(a.familyId) || {}).rating || 0;
+      const rb = (SUFRAH.familyById(b.familyId) || {}).rating || 0;
+      return rb - ra;
+    });
+    return arr;
+  }
+
   function renderDishes() {
-    const list = getFilteredDishes();
+    const list = sortDishes(getFilteredDishes());
     dishesCount.textContent = `${list.length} طبق متاح`;
     if (list.length === 0) {
       dishesGrid.innerHTML = '';
@@ -571,6 +584,7 @@
     $('#searchInput').addEventListener('input', (e) => { syncSearchInputs(e.target.value, 'header'); onSearch(e.target.value); });
     $('#heroSearch').addEventListener('input', (e) => { syncSearchInputs(e.target.value, 'hero'); onSearch(e.target.value); });
     $('#heroSearchBtn').addEventListener('click', () => document.getElementById('menu').scrollIntoView({ behavior: 'smooth' }));
+    $('#sortSelect').addEventListener('change', (e) => { sortBy = e.target.value; renderDishes(); });
 
     $('#checkoutBtn').addEventListener('click', async () => {
       if (cartQtyTotal() === 0) { showToast('سلتك فاضية 🛒'); return; }

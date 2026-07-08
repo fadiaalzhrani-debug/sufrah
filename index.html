@@ -132,6 +132,14 @@
           <h2 class="section__title" id="dishesTitle">الأطباق الأكثر طلباً 🔥</h2>
           <p class="section__desc" id="dishesCount">جاري التحميل…</p>
         </div>
+        <div class="select-wrap sort-wrap">
+          <select id="sortSelect">
+            <option value="new">الأحدث</option>
+            <option value="price_asc">الأقل سعراً</option>
+            <option value="price_desc">الأعلى سعراً</option>
+            <option value="rating">الأعلى تقييماً</option>
+          </select>
+        </div>
       </div>
       <div class="dishes" id="dishesGrid"><!-- تُبنى بالجافاسكربت --></div>
       <div class="empty" id="emptyState" hidden>
