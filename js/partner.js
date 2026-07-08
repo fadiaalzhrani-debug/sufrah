@@ -72,7 +72,7 @@
     $('#dashName').textContent = account.kitchenName;
     const cz = (CUISINE_BY_ID[account.cuisine] || {});
     const cePrefix = cz.emoji ? cz.emoji + ' ' : '';
-    $('#dashMeta').textContent = `${cePrefix}${cz.name || ''}${account.city ? ' · ' + account.city : ''} · @${account.username}`;
+    $('#dashMeta').textContent = `${cePrefix}${cz.name || ''}${account.city ? ' · ' + account.city : ''} · ${account.email || ''}`;
     // ضبط تصنيف المطبخ الافتراضي في نموذج الطبق
     $('#dishCuisine').value = account.cuisine;
     renderMyDishes(account);
@@ -158,26 +158,24 @@
     syncAgree();
 
     // تسجيل جديد
-    $('#registerForm').addEventListener('submit', (e) => {
+    $('#registerForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const err = $('#regError');
       if (!agreeChecks.every((c) => c.checked)) {
-        const err = $('#regError');
         err.textContent = 'يرجى الموافقة على جميع الإقرارات النظامية قبل المتابعة';
-        err.hidden = false;
-        return;
+        err.hidden = false; return;
       }
       const fd = new FormData(e.target);
-      const res = SUFRAH.register({
+      regSubmit.disabled = true; regSubmit.textContent = '⏳ جاري الإنشاء…';
+      const res = await SUFRAH.register({
         kitchenName: fd.get('kitchenName'),
         cuisine: fd.get('cuisine'),
         city: fd.get('city'),
-        phone: fd.get('phone'),
-        username: fd.get('username'),
+        email: fd.get('email'),
         password: fd.get('password'),
         emoji: pickedEmoji,
-        grad: DEFAULT_GRAD,
       });
-      const err = $('#regError');
+      regSubmit.disabled = false; regSubmit.textContent = '🚀 افتح مطبخك';
       if (!res.ok) { err.textContent = res.error; err.hidden = false; return; }
       err.hidden = true;
       showToast(`🎉 تم فتح «${res.account.kitchenName}» بنجاح!`);
@@ -185,11 +183,11 @@
     });
 
     // دخول
-    $('#loginForm').addEventListener('submit', (e) => {
+    $('#loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const fd = new FormData(e.target);
-      const res = SUFRAH.login(fd.get('username'), fd.get('password'));
       const err = $('#loginError');
+      const fd = new FormData(e.target);
+      const res = await SUFRAH.login(fd.get('email'), fd.get('password'));
       if (!res.ok) { err.textContent = res.error; err.hidden = false; return; }
       err.hidden = true;
       showToast(`أهلاً من جديد يا «${res.account.kitchenName}» 👋`);
@@ -197,7 +195,7 @@
     });
 
     // خروج
-    $('#logoutBtn').addEventListener('click', () => { SUFRAH.logout(); showAuth(); showToast('تم تسجيل الخروج'); });
+    $('#logoutBtn').addEventListener('click', async () => { await SUFRAH.logout(); showAuth(); showToast('تم تسجيل الخروج'); });
 
     // فتح/إغلاق نافذة الإضافة
     $('#openAddBtn').addEventListener('click', () => { resetDishForm(); openAdd(); });
@@ -215,47 +213,51 @@
     });
 
     // حفظ الطبق
-    $('#dishForm').addEventListener('submit', (e) => {
+    $('#dishForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const account = SUFRAH.currentAccount();
       if (!account) { showAuth(); return; }
       const fd = new FormData(e.target);
       const delivery = [...document.querySelectorAll('#deliveryChecks input:checked')].map((c) => c.value);
-      SUFRAH.addDish({
+      const btn = e.target.querySelector('button[type="submit"]');
+      btn.disabled = true; btn.textContent = '⏳ جاري الحفظ…';
+      const res = await SUFRAH.addDish({
         name: (fd.get('name') || '').trim(),
         price: Number(fd.get('price')),
         cat: fd.get('cat'),
         cuisine: fd.get('cuisine'),
         desc: (fd.get('desc') || '').trim(),
-        familyId: account.id,
         img: pickedImg || '',
-        emoji: pickedImg ? '' : account.emoji,
-        grad: account.grad || DEFAULT_GRAD,
         delivery: delivery.length ? delivery : ALL_DELIVERY,
         tag: 'جديد',
       });
+      btn.disabled = false; btn.textContent = '💾 حفظ الطبق';
+      if (!res.ok) { showToast('تعذّر الحفظ: ' + (res.error || '')); return; }
       closeAdd();
       showToast('✅ أُضيف الطبق! صار ظاهر للعملاء الآن');
       renderMyDishes(account);
     });
 
     // حذف طبق
-    $('#myDishes').addEventListener('click', (e) => {
+    $('#myDishes').addEventListener('click', async (e) => {
       const b = e.target.closest('[data-del]'); if (!b) return;
-      SUFRAH.deleteDish(b.dataset.del);
+      await SUFRAH.deleteDish(b.dataset.del);
       renderMyDishes(SUFRAH.currentAccount());
       showToast('🗑️ تم حذف الطبق');
     });
   }
 
   /* ---------- الإقلاع ---------- */
-  function init() {
+  async function init() {
     fillSelect($('#regCuisine'), CUISINES, 'all');
     fillSelect($('#dishCat'), CATEGORIES, 'all');
     fillSelect($('#dishCuisine'), CUISINES, 'all');
     fillEmojiPick();
     fillDeliveryChecks();
     bindEvents();
+    // تحديث أطباق مطبخي لحظياً إذا كان مسجّلاً دخول
+    SUFRAH.onChange(() => { const a = SUFRAH.currentAccount(); if (a && !dashView.hidden) renderMyDishes(a); });
+    try { await SUFRAH.init(); } catch (e) { console.warn('SUFRAH.init', e); }
     const acc = SUFRAH.currentAccount();
     if (acc) showDash(acc); else showAuth();
   }

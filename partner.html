@@ -82,8 +82,8 @@
           </div>
           <hr class="sep" />
           <div class="field">
-            <label>اسم المستخدم</label>
-            <input type="text" name="username" placeholder="اسم الدخول" required autocomplete="username" />
+            <label>البريد الإلكتروني</label>
+            <input type="email" name="email" placeholder="name@example.com" required autocomplete="email" />
           </div>
           <div class="field">
             <label>كلمة المرور</label>
@@ -124,8 +124,8 @@
         <!-- دخول -->
         <form id="loginForm" class="form" hidden>
           <div class="field">
-            <label>اسم المستخدم</label>
-            <input type="text" name="username" placeholder="اسم الدخول" required autocomplete="username" />
+            <label>البريد الإلكتروني</label>
+            <input type="email" name="email" placeholder="name@example.com" required autocomplete="email" />
           </div>
           <div class="field">
             <label>كلمة المرور</label>
@@ -224,6 +224,7 @@
   <div class="toast" id="toast"></div>
 
   <script src="js/data.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/store.js"></script>
   <script src="js/partner.js"></script>
   <script>

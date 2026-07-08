@@ -121,8 +121,9 @@
   }
 
   /* ---------- صفحة المطبخ ---------- */
-  function openKitchen(id) {
-    const fam = SUFRAH.familyById(id); if (!fam) return;
+  let openKitchenId = null;
+  function renderKitchen(id) {
+    const fam = SUFRAH.familyById(id); if (!fam) return false;
     const dishes = SUFRAH.allDishes().filter((d) => d.familyId === id);
     const cz = (CUISINE_BY_ID[fam.cuisine] || {});
     kitchenView.innerHTML = `
@@ -145,11 +146,17 @@
           ? `<div class="dishes">${dishes.map(dishCard).join('')}</div>`
           : `<div class="empty"><span>🍳</span><p>هذا المطبخ ما أضاف أطباق بعد</p></div>`}
       </div>`;
+    return true;
+  }
+  function openKitchen(id) {
+    if (!renderKitchen(id)) return;
+    openKitchenId = id;
     homeView.hidden = true;
     kitchenView.hidden = false;
     window.scrollTo(0, 0);
   }
   function closeKitchen() {
+    openKitchenId = null;
     kitchenView.hidden = true;
     homeView.hidden = false;
   }
@@ -314,9 +321,15 @@
   }
 
   /* ---------- الإقلاع ---------- */
-  function init() {
+  function renderAll() {
+    renderFamilies();
+    if (openKitchenId) renderKitchen(openKitchenId); else renderDishes();
+  }
+  async function init() {
     renderCategories(); renderCuisines(); renderFamilies(); renderDishes();
     updateCartUI(); bindEvents();
+    SUFRAH.onChange(renderAll);
+    try { await SUFRAH.init(); } catch (e) { console.warn('SUFRAH.init', e); }
   }
   document.addEventListener('DOMContentLoaded', init);
 })();
