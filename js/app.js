@@ -464,6 +464,28 @@
     locModal.classList.add('is-open'); locOverlay.classList.add('is-open'); document.body.style.overflow = 'hidden';
   }
   function closeLoc() { locModal.classList.remove('is-open'); locOverlay.classList.remove('is-open'); document.body.style.overflow = ''; }
+  function detectLocation() {
+    if (!navigator.geolocation) { showToast('جهازك ما يدعم تحديد الموقع'); return; }
+    showToast('📍 نحدد موقعك…');
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      try {
+        const { latitude, longitude } = pos.coords;
+        const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=ar`);
+        const data = await res.json();
+        const detectedCity = data.city || data.principalSubdivision || data.locality || '';
+        const cityMatch = CITIES.find((c) => c !== 'كل المدن' && detectedCity && (detectedCity.includes(c) || c.includes(detectedCity)));
+        const citySel = $('#locCity');
+        if (cityMatch) { citySel.value = cityMatch; fillDistricts(cityMatch); }
+        const nb = (data.locality && data.locality !== detectedCity && data.locality !== cityMatch) ? data.locality : '';
+        if (nb) {
+          const sel = $('#locDistrict');
+          if (![...sel.options].some((o) => o.value === nb)) sel.add(new Option(nb, nb));
+          sel.value = nb;
+        }
+        showToast(cityMatch ? `📍 موقعك: ${cityMatch}${nb ? ' — ' + nb : ''}` : '📍 حددنا موقعك — اختر مدينتك يدوياً');
+      } catch (e) { showToast('تعذّر تحديد الموقع، اختر يدوياً'); }
+    }, () => { showToast('لازم تسمح بالوصول لموقعك من المتصفح'); }, { enableHighAccuracy: true, timeout: 8000 });
+  }
 
   /* ---------- الأحداث ---------- */
   function bindEvents() {
@@ -517,6 +539,7 @@
     $('#locClose').addEventListener('click', closeLoc);
     locOverlay.addEventListener('click', closeLoc);
     $('#locCity').addEventListener('change', (e) => fillDistricts(e.target.value));
+    $('#locGps').addEventListener('click', detectLocation);
     $('#locSave').addEventListener('click', () => {
       loc = { city: $('#locCity').value, district: ($('#locDistrict').value || '').trim() };
       saveLoc(); updateLocHeader(); renderFamilies(); renderDishes(); closeLoc();
