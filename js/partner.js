@@ -314,7 +314,11 @@
     // تحديث أطباق مطبخي لحظياً إذا كان مسجّلاً دخول
     SUFRAH.onChange(() => { const a = SUFRAH.currentAccount(); if (a && !dashView.hidden) renderMyDishes(a); });
     try { await SUFRAH.init(); } catch (e) { console.warn('SUFRAH.init', e); }
-    SUFRAH.subscribeOrders(() => { const a = SUFRAH.currentAccount(); if (a && !dashView.hidden) renderOrders(a); });
+    SUFRAH.subscribeOrders((payload) => {
+      const a = SUFRAH.currentAccount();
+      if (a && !dashView.hidden) renderOrders(a);
+      if (payload.eventType === 'INSERT' && a && payload.new && payload.new.kitchen_id === a.id) showToast('🔔 طلب جديد وصلك!');
+    });
     const acc = SUFRAH.currentAccount();
     if (acc) showDash(acc); else showAuth();
   }

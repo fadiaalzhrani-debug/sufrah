@@ -33,6 +33,11 @@
   const acctBody = $('#acctBody');
   const locOverlay = $('#locOverlay');
   const locModal = $('#locModal');
+  const notifOverlay = $('#notifOverlay');
+  const notifModal = $('#notifModal');
+  const notifBody = $('#notifBody');
+  let myUserId = null;
+  let notifs = (function () { try { return JSON.parse(localStorage.getItem('sufrah_notifs')) || []; } catch { return []; } })();
 
   const priceLabel = (n) => `${n} ر.س`;
   const dishById = (id) => SUFRAH.allDishes().find((d) => d.id === id);
@@ -332,8 +337,33 @@
   const escH = (s) => String(s == null ? '' : s).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
   async function refreshAcctBtn() {
     const u = await SUFRAH.currentUser();
+    myUserId = u ? u.id : null;
     $('#accountBtn').classList.toggle('is-in', !!u);
   }
+
+  /* ---------- الإشعارات ---------- */
+  function saveNotifs() { localStorage.setItem('sufrah_notifs', JSON.stringify(notifs.slice(0, 30))); }
+  function renderNotifBadge() {
+    const b = $('#notifBadge'); const c = notifs.filter((n) => !n.read).length;
+    b.textContent = c; b.hidden = c === 0;
+  }
+  function addNotif(text) {
+    notifs.unshift({ text, time: Date.now(), read: false });
+    saveNotifs(); renderNotifBadge(); showToast('🔔 ' + text);
+  }
+  function renderNotifPanel() {
+    notifBody.innerHTML = notifs.length ? notifs.map((n) => `
+      <div class="notif-item ${n.read ? '' : 'unread'}">
+        <div class="notif-item__text">🔔 ${escH(n.text)}</div>
+        <div class="notif-item__time">${new Date(n.time).toLocaleString('ar', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}</div>
+      </div>`).join('') : '<div class="aempty">ما فيه إشعارات بعد</div>';
+  }
+  function openNotif() {
+    renderNotifPanel();
+    notifModal.classList.add('is-open'); notifOverlay.classList.add('is-open'); document.body.style.overflow = 'hidden';
+    notifs.forEach((n) => { n.read = true; }); saveNotifs(); renderNotifBadge();
+  }
+  function closeNotif() { notifModal.classList.remove('is-open'); notifOverlay.classList.remove('is-open'); document.body.style.overflow = ''; }
   function openAcct() { acctModal.classList.add('is-open'); acctOverlay.classList.add('is-open'); document.body.style.overflow = 'hidden'; renderAcct(); }
   function closeAcct() { acctModal.classList.remove('is-open'); acctOverlay.classList.remove('is-open'); document.body.style.overflow = ''; }
   function orderCardRO(o) {
@@ -492,7 +522,10 @@
       saveLoc(); updateLocHeader(); renderFamilies(); renderDishes(); closeLoc();
       showToast('📍 تم تحديث موقعك');
     });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeDrawer(); closeAcct(); closeLoc(); } });
+    $('#notifBtn').addEventListener('click', openNotif);
+    $('#notifClose').addEventListener('click', closeNotif);
+    notifOverlay.addEventListener('click', closeNotif);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeDrawer(); closeAcct(); closeLoc(); closeNotif(); } });
 
     const onSearch = (val) => { closeKitchen(); searchTerm = val; renderDishes(); };
     $('#searchInput').addEventListener('input', (e) => { syncSearchInputs(e.target.value, 'header'); onSearch(e.target.value); });
@@ -547,7 +580,14 @@
     updateCartUI(); bindEvents();
     SUFRAH.onChange(renderAll);
     try { await SUFRAH.init(); } catch (e) { console.warn('SUFRAH.init', e); }
-    refreshAcctBtn();
+    await refreshAcctBtn();
+    renderNotifBadge();
+    SUFRAH.subscribeOrders((payload) => {
+      if (payload.eventType === 'UPDATE' && payload.new && myUserId && payload.new.customer_id === myUserId) {
+        const st = ORDER_STATUS[payload.new.status] || {};
+        addNotif(`طلبك صار «${st.label || ''}» ${st.emoji || ''}`);
+      }
+    });
   }
   document.addEventListener('DOMContentLoaded', init);
 })();

@@ -45,6 +45,8 @@
 
       <a href="partner.html" class="partner-link">🍳 سجّل مطبخك</a>
 
+      <button class="acct-btn bell-btn" id="notifBtn" type="button" aria-label="الإشعارات">🔔<span class="notif-badge" id="notifBadge" hidden></span></button>
+
       <button class="acct-btn" id="accountBtn" type="button" aria-label="حسابي">👤</button>
 
       <button class="cart-btn" id="cartBtn" type="button" aria-label="السلة">
@@ -263,6 +265,16 @@
         <a href="terms.html#terms" target="_blank" rel="noopener">شروط الاستخدام</a> و<a href="terms.html#privacy" target="_blank" rel="noopener">سياسة الخصوصية</a>.</p>
     </div>
   </aside>
+
+  <!-- ===== الإشعارات ===== -->
+  <div class="overlay" id="notifOverlay"></div>
+  <div class="modal" id="notifModal" aria-label="الإشعارات">
+    <div class="modal__head">
+      <h3>🔔 الإشعارات</h3>
+      <button class="drawer__close" id="notifClose" aria-label="إغلاق">✕</button>
+    </div>
+    <div class="modal__body" id="notifBody"></div>
+  </div>
 
   <!-- ===== الموقع ===== -->
   <div class="overlay" id="locOverlay"></div>
