@@ -504,6 +504,7 @@
   function closeNotif() { notifModal.classList.remove('is-open'); notifOverlay.classList.remove('is-open'); document.body.style.overflow = ''; }
   function openAcct() { acctModal.classList.add('is-open'); acctOverlay.classList.add('is-open'); document.body.style.overflow = 'hidden'; renderAcct(); }
   function closeAcct() { acctModal.classList.remove('is-open'); acctOverlay.classList.remove('is-open'); document.body.style.overflow = ''; }
+  let lastOrders = []; // آخر طلبات معروضة في «طلباتي» (لإعادة الطلب)
   function orderCardRO(o) {
     const st = ORDER_STATUS[o.status] || ORDER_STATUS.new;
     const items = (o.items || []).map((it) => `${it.qty}× ${escH(it.name)}`).join('، ');
@@ -511,7 +512,30 @@
     const sched = sv ? `<div class="order__sched">📅 موعد الطلب: ${fmtSched(sv)}</div>` : '';
     return `<div class="order order--${o.status}">
       <div class="order__top"><span class="ostatus ostatus--${o.status}">${st.emoji} ${st.label}</span><span class="order__total">${o.total} ر.س</span></div>
-      <div class="order__items">${items}</div>${sched}</div>`;
+      <div class="order__items">${items}</div>${sched}
+      <button class="order__reorder" data-reorder="${o.id}">🔁 اطلب مرة ثانية</button></div>`;
+  }
+  function reorder(orderId) {
+    const o = lastOrders.find((x) => x.id === orderId);
+    if (!o || !Array.isArray(o.items)) return;
+    let added = 0, missing = 0, closed = false;
+    o.items.forEach((it) => {
+      const d = dishById(it.dish_id);
+      if (!d) { missing++; return; }
+      const fam = SUFRAH.familyById(d.familyId);
+      if (fam && fam.isOpen === false) { closed = true; return; }
+      cart[it.dish_id] = (cart[it.dish_id] || 0) + (it.qty || 1);
+      added++;
+    });
+    if (added) {
+      saveCartAll(); updateCartUI();
+      closeAcct(); openDrawer();
+      showToast((missing || closed) ? '✅ أضفنا الأصناف المتوفّرة لسلتك' : '🛒 رجّعنا طلبك للسلة!');
+    } else if (closed) {
+      showToast('🔴 مطبخ هذا الطلب مغلق حالياً');
+    } else {
+      showToast('أصناف هذا الطلب غير متوفرة حالياً');
+    }
   }
   async function renderAcct() {
     const user = await SUFRAH.currentUser();
@@ -555,6 +579,7 @@
     } else {
       const p = await SUFRAH.getProfile();
       const orders = await SUFRAH.getMyOrders();
+      lastOrders = orders;
       acctBody.innerHTML = `
         <div class="acct-hello">أهلاً ${escH(p.full_name || 'بك')} 👋</div>
         <div class="acct-email">${escH(p.email)}</div>
@@ -655,6 +680,10 @@
     $('#accountBtn').addEventListener('click', openAcct);
     $('#acctClose').addEventListener('click', closeAcct);
     acctOverlay.addEventListener('click', closeAcct);
+    acctBody.addEventListener('click', (e) => {
+      const rb = e.target.closest('[data-reorder]');
+      if (rb) reorder(rb.dataset.reorder);
+    });
     $('#locationBtn').addEventListener('click', openLoc);
     $('#locClose').addEventListener('click', closeLoc);
     locOverlay.addEventListener('click', closeLoc);
