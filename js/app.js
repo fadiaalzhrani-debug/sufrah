@@ -195,6 +195,25 @@
     loadKitchenReviews(id);
     return true;
   }
+  function fileToReviewImg(file, maxDim = 720, quality = 0.7) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > height && width > maxDim) { height = Math.round(height * maxDim / width); width = maxDim; }
+          else if (height > maxDim) { width = Math.round(width * maxDim / height); height = maxDim; }
+          const c = document.createElement('canvas');
+          c.width = width; c.height = height;
+          c.getContext('2d').drawImage(img, 0, 0, width, height);
+          resolve(c.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = reject; img.src = e.target.result;
+      };
+      reader.onerror = reject; reader.readAsDataURL(file);
+    });
+  }
   async function loadKitchenReviews(kid) {
     const [user, reviews] = await Promise.all([SUFRAH.currentUser(), SUFRAH.getKitchenReviews(kid)]);
     const area = $('#reviewsArea'); if (!area) return;
@@ -202,26 +221,42 @@
       <div class="rate-box">
         <div class="rate-stars" id="rateStars">${[1, 2, 3, 4, 5].map((n) => `<span data-star="${n}">☆</span>`).join('')}</div>
         <textarea id="rateComment" rows="2" placeholder="اكتب رأيك (اختياري)…"></textarea>
+        <label class="rate-photo" id="ratePhotoLabel">
+          <input type="file" id="ratePhoto" accept="image/*" hidden />
+          <span id="ratePhotoPh">📷 أضف صورة للطبق (اختياري)</span>
+          <img id="ratePhotoPrev" alt="معاينة الصورة" hidden />
+        </label>
         <button class="btn btn--primary" id="rateSubmit">أضف تقييمك</button>
       </div>` : `<div class="rate-login">سجّل دخولك (زر 👤 فوق) عشان تقيّم المطبخ</div>`;
     const list = reviews.length ? reviews.map((r) => `
       <div class="review">
         <div class="review__stars">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div>
         ${r.comment ? `<div class="review__text">${escH(r.comment)}</div>` : ''}
+        ${r.image_url && /^data:image\//.test(r.image_url) ? `<img class="review__img" src="${r.image_url}" alt="صورة الطبق" loading="lazy" />` : ''}
         <div class="review__time">${new Date(r.created_at).toLocaleDateString('ar')}</div>
       </div>`).join('') : '<div class="aempty">ما فيه تقييمات بعد — كن أول من يقيّم</div>';
     area.innerHTML = form + `<div class="reviews-list">${list}</div>`;
     if (user) {
       let picked = 0;
+      let pickedImg = '';
       const starsEl = $('#rateStars');
       starsEl.addEventListener('click', (e) => {
         const s = e.target.closest('[data-star]'); if (!s) return;
         picked = +s.dataset.star;
         [...starsEl.children].forEach((c, i) => { c.textContent = i < picked ? '★' : '☆'; });
       });
+      const photoInput = $('#ratePhoto');
+      photoInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0]; if (!file) return;
+        try {
+          pickedImg = await fileToReviewImg(file);
+          const prev = $('#ratePhotoPrev'); const ph = $('#ratePhotoPh');
+          prev.src = pickedImg; prev.hidden = false; if (ph) ph.hidden = true;
+        } catch { showToast('تعذّر قراءة الصورة، جرّب صورة ثانية'); }
+      });
       $('#rateSubmit').addEventListener('click', async () => {
         if (!picked) { showToast('اختر عدد النجوم ⭐'); return; }
-        const res = await SUFRAH.addReview({ kitchen_id: kid, rating: picked, comment: ($('#rateComment').value || '').trim() });
+        const res = await SUFRAH.addReview({ kitchen_id: kid, rating: picked, comment: ($('#rateComment').value || '').trim(), image: pickedImg || '' });
         if (!res.ok) { showToast('تعذّر إرسال التقييم'); return; }
         showToast('🌟 شكراً لتقييمك!');
         await SUFRAH.refresh();

@@ -210,7 +210,14 @@ const SUFRAH = (function () {
   async function addReview(r) {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return { ok: false, error: 'سجّل دخولك أولاً' };
-    const { error } = await sb.from('reviews').insert({ kitchen_id: r.kitchen_id, customer_id: session.user.id, rating: r.rating, comment: r.comment });
+    const row = { kitchen_id: r.kitchen_id, customer_id: session.user.id, rating: r.rating, comment: r.comment };
+    if (r.image) row.image_url = r.image;
+    let { error } = await sb.from('reviews').insert(row);
+    // إن لم يوجد عمود الصورة بعد (لم تُشغّل reviews_image.sql) ننشر التقييم بدون صورة بدل أن يفشل
+    if (error && r.image && /image_url|column|schema cache/i.test(error.message || '')) {
+      const fb = { ...row }; delete fb.image_url;
+      ({ error } = await sb.from('reviews').insert(fb));
+    }
     return error ? { ok: false, error: error.message } : { ok: true };
   }
   async function getKitchenReviews(kid) {
