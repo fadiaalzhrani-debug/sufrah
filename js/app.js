@@ -344,6 +344,8 @@
     try { return new Date(s).toLocaleString('ar', { weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }); }
     catch { return ''; }
   }
+  // الموعد يُخزَّن داخل بيانات الطلب (items) فلا يحتاج عمود جديد بالقاعدة
+  function orderSched(o) { return (o.items || []).reduce((v, it) => v || (it && it.sched) || null, null); }
   function schedLabelText() {
     const slot = TIME_SLOT_BY_ID[schedSlot];
     if (!slot) return '';
@@ -505,7 +507,8 @@
   function orderCardRO(o) {
     const st = ORDER_STATUS[o.status] || ORDER_STATUS.new;
     const items = (o.items || []).map((it) => `${it.qty}× ${escH(it.name)}`).join('، ');
-    const sched = o.scheduled_for ? `<div class="order__sched">📅 موعد الطلب: ${fmtSched(o.scheduled_for)}</div>` : '';
+    const sv = orderSched(o);
+    const sched = sv ? `<div class="order__sched">📅 موعد الطلب: ${fmtSched(sv)}</div>` : '';
     return `<div class="order order--${o.status}">
       <div class="order__top"><span class="ostatus ostatus--${o.status}">${st.emoji} ${st.label}</span><span class="order__total">${o.total} ر.س</span></div>
       <div class="order__items">${items}</div>${sched}</div>`;
@@ -709,12 +712,12 @@
       for (const [kid, items] of Object.entries(groups)) {
         const subtotal = items.reduce((s, it) => s + it.price * it.qty, 0);
         const orderDisc = totalSub > 0 ? Math.round(totalDisc * subtotal / totalSub) : 0;
+        if (scheduledFor && items[0]) items[0].sched = scheduledFor;
         const orderObj = {
           kitchen_id: kid, customer_name: name, customer_phone: phone, address,
           delivery_method: deliveryMethod, payment_method: paymentMethod,
           items, subtotal, delivery_fee: fee, total: Math.max(0, subtotal + fee - orderDisc),
         };
-        if (scheduledFor) orderObj.scheduled_for = scheduledFor;
         const res = await SUFRAH.createOrder(orderObj);
         if (res.ok) okCount++;
       }

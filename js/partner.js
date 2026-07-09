@@ -123,6 +123,7 @@
   /* ---------- الطلبات الواردة ---------- */
   const fmtT = (s) => { try { return new Date(s).toLocaleString('ar', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' }); } catch { return ''; } };
   const fmtSched = (s) => { try { return new Date(s).toLocaleString('ar', { weekday: 'long', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return ''; } };
+  const orderSched = (o) => (o.items || []).reduce((v, it) => v || (it && it.sched) || null, null);
   function orderActions(o) {
     const b = (to, label, cls) => `<button class="abtn ${cls}" data-order="${o.id}" data-to="${to}">${label}</button>`;
     if (o.status === 'new') return b('preparing', 'قبول ✅', 'abtn--go') + ' ' + b('cancelled', 'رفض', 'abtn--danger');
@@ -141,8 +142,9 @@
         const items = (o.items || []).map((it) => `${it.qty}× ${escHtml(it.name)}`).join('، ');
         const dm = (DELIVERY_TYPES[o.delivery_method] || {}).name || '';
         const pm = (PAYMENT_TYPES[o.payment_method] || PAYMENT_TYPES.cash);
-        const schedLine = o.scheduled_for
-          ? `<div class="order__sched">📅 موعد التسليم: <b>${fmtSched(o.scheduled_for)}</b></div>`
+        const sv = orderSched(o);
+        const schedLine = sv
+          ? `<div class="order__sched">📅 موعد التسليم: <b>${fmtSched(sv)}</b></div>`
           : '';
         return `
         <div class="order order--${o.status}">
