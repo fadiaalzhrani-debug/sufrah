@@ -507,7 +507,7 @@
   function orderCardRO(o) {
     const st = ORDER_STATUS[o.status] || ORDER_STATUS.new;
     const items = (o.items || []).map((it) => `${it.qty}× ${escH(it.name)}`).join('، ');
-    const sv = orderSched(o);
+    const sv = o.scheduled_for || orderSched(o);
     const sched = sv ? `<div class="order__sched">📅 موعد الطلب: ${fmtSched(sv)}</div>` : '';
     return `<div class="order order--${o.status}">
       <div class="order__top"><span class="ostatus ostatus--${o.status}">${st.emoji} ${st.label}</span><span class="order__total">${o.total} ر.س</span></div>
@@ -712,12 +712,12 @@
       for (const [kid, items] of Object.entries(groups)) {
         const subtotal = items.reduce((s, it) => s + it.price * it.qty, 0);
         const orderDisc = totalSub > 0 ? Math.round(totalDisc * subtotal / totalSub) : 0;
-        if (scheduledFor && items[0]) items[0].sched = scheduledFor;
         const orderObj = {
           kitchen_id: kid, customer_name: name, customer_phone: phone, address,
           delivery_method: deliveryMethod, payment_method: paymentMethod,
           items, subtotal, delivery_fee: fee, total: Math.max(0, subtotal + fee - orderDisc),
         };
+        if (scheduledFor) orderObj.scheduled_for = scheduledFor;
         const res = await SUFRAH.createOrder(orderObj);
         if (res.ok) okCount++;
       }

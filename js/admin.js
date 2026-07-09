@@ -91,7 +91,7 @@
       const kName = (state.kitchens.find((k) => k.id === o.kitchen_id) || {}).name || '';
       const items = (o.items || []).map((it) => `${it.qty}× ${esc(it.name)}`).join('، ');
       const pm = (PAYMENT_TYPES[o.payment_method] || PAYMENT_TYPES.cash);
-      const sv = (o.items || []).reduce((v, it) => v || (it && it.sched) || null, null);
+      const sv = o.scheduled_for || (o.items || []).reduce((v, it) => v || (it && it.sched) || null, null);
       const sched = sv
         ? ' · 📅 ' + (() => { try { return new Date(sv).toLocaleString('ar', { weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return ''; } })()
         : '';

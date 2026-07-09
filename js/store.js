@@ -151,7 +151,16 @@ const SUFRAH = (function () {
   async function createOrder(order) {
     const { data: { session } } = await sb.auth.getSession();
     if (session) order.customer_id = session.user.id;
-    const { error } = await sb.from('orders').insert(order);
+    let { error } = await sb.from('orders').insert(order);
+    // إن لم يوجد عمود الموعد بعد (لم تُشغّل schedule.sql) نحفظ الموعد داخل بيانات الطلب حتى لا يضيع
+    if (error && order.scheduled_for && /scheduled_for|column|schema cache/i.test(error.message || '')) {
+      const fb = { ...order };
+      delete fb.scheduled_for;
+      if (Array.isArray(fb.items) && fb.items[0]) {
+        fb.items = fb.items.map((it, i) => (i === 0 ? { ...it, sched: order.scheduled_for } : it));
+      }
+      ({ error } = await sb.from('orders').insert(fb));
+    }
     return error ? { ok: false, error: error.message } : { ok: true };
   }
 

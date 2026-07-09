@@ -142,7 +142,7 @@
         const items = (o.items || []).map((it) => `${it.qty}× ${escHtml(it.name)}`).join('، ');
         const dm = (DELIVERY_TYPES[o.delivery_method] || {}).name || '';
         const pm = (PAYMENT_TYPES[o.payment_method] || PAYMENT_TYPES.cash);
-        const sv = orderSched(o);
+        const sv = o.scheduled_for || orderSched(o);
         const schedLine = sv
           ? `<div class="order__sched">📅 موعد التسليم: <b>${fmtSched(sv)}</b></div>`
           : '';
