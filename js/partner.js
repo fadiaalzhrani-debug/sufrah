@@ -81,6 +81,7 @@
     renderMyDishes(account);
     renderOrders(account);
     renderSubscribers(account);
+    renderAnalytics(account);
     // إعلانات الأدمن
     SUFRAH.getAnnouncements().then((list) => {
       const b = $('#annBanner');
@@ -164,6 +165,26 @@
         </div>`;
       }).join('');
     });
+  }
+
+  /* ---------- تحليلات المطبخ ---------- */
+  function renderAnalytics(account) {
+    Promise.all([SUFRAH.getKitchenOrders(account.id), SUFRAH.getKitchenReviews(account.id)]).then(([orders, reviews]) => {
+      const active = orders.filter((o) => o.status !== 'cancelled');
+      const revenue = active.reduce((s, o) => s + Number(o.total || 0), 0);
+      const weekAgo = Date.now() - 7 * 864e5;
+      const weekCount = orders.filter((o) => { try { return new Date(o.created_at).getTime() >= weekAgo; } catch { return false; } }).length;
+      const avg = reviews.length ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) : 0;
+      // الطبق الأكثر طلباً (بمجموع الكميات)
+      const tally = {};
+      active.forEach((o) => (o.items || []).forEach((it) => { const n = it.name || ''; tally[n] = (tally[n] || 0) + (it.qty || 1); }));
+      const best = Object.entries(tally).sort((a, b) => b[1] - a[1])[0];
+      $('#anOrders').textContent = orders.length;
+      $('#anRevenue').textContent = `${revenue} ر.س`;
+      $('#anWeek').textContent = weekCount;
+      $('#anRating').textContent = reviews.length ? `⭐ ${avg.toFixed(1)}` : '—';
+      $('#anBest').textContent = best ? `${best[0]} (${best[1]}×)` : 'لا يوجد بعد';
+    }).catch(() => {});
   }
 
   /* ---------- المشتركون أسبوعياً ---------- */

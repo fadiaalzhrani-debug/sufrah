@@ -99,6 +99,7 @@ const WEEKDAY_BY_ID = Object.fromEntries(WEEKDAYS.map((d) => [d.id, d]));
 // نقاط الولاء: تكسب نقطة على كل ريال، وكل ١٠ نقاط = ١ ريال خصم (يعني ١٠٪ ترجع لك)
 const POINTS_PER_SAR = 1;         // نقاط مكتسبة لكل ريال
 const POINTS_PER_SAR_REDEEM = 10; // كم نقطة تعادل ريال عند الاستبدال
+const REFERRAL_BONUS = 50;        // نقاط الإحالة لكل طرف (٥ ر.س)
 
 // الأسر المنتجة (Seed)
 const FAMILIES = [

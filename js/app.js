@@ -645,6 +645,7 @@
           <div class="field"><label>رقم الجوال</label><input type="tel" name="phone" placeholder="05xxxxxxxx" /></div>
           <div class="field"><label>البريد الإلكتروني</label><input type="email" name="email" required placeholder="name@example.com" /></div>
           <div class="field"><label>كلمة المرور</label><input type="password" name="password" required placeholder="••••••••" /></div>
+          <div class="field"><label>كود صديق (اختياري) 🎁</label><input type="text" name="ref" placeholder="مثال: SF1A2B3C" /></div>
           <p class="form__error" id="crErr" hidden></p>
           <button class="btn btn--primary btn--block" type="submit">إنشاء الحساب</button>
         </form>`;
@@ -663,22 +664,57 @@
         e.preventDefault(); const fd = new FormData(e.target); const err = $('#crErr');
         const res = await SUFRAH.registerCustomer({ name: fd.get('name'), phone: fd.get('phone'), email: fd.get('email'), password: fd.get('password') });
         if (!res.ok) { err.textContent = res.error; err.hidden = false; return; }
-        showToast('🎉 تم إنشاء حسابك'); await refreshAcctBtn(); pushCloud(); renderAcct();
+        await refreshAcctBtn();
+        const refCode = (fd.get('ref') || '').trim();
+        if (refCode) {
+          const rr = await SUFRAH.redeemReferral(refCode);
+          showToast(rr.ok ? `🎉 حسابك جاهز! أنت وصديقك ربحتوا ${rr.bonus} نقطة 🎁` : '🎉 تم إنشاء حسابك');
+        } else { showToast('🎉 تم إنشاء حسابك'); }
+        pushCloud(); renderAcct();
       });
     } else {
-      const [p, orders, subs] = await Promise.all([SUFRAH.getProfile(), SUFRAH.getMyOrders(), SUFRAH.getMySubscriptions()]);
+      const [p, orders, subs, ref] = await Promise.all([SUFRAH.getProfile(), SUFRAH.getMyOrders(), SUFRAH.getMySubscriptions(), SUFRAH.getReferralInfo()]);
       lastOrders = orders;
       myPoints = (p && p.points) || 0;
+      const refSection = ref ? `
+        <div class="ref-box">
+          <div class="ref-box__title">🎁 ادعُ أصدقاءك</div>
+          <div class="ref-box__desc">شارك كودك — أنت وصديقك تكسبون ${REFERRAL_BONUS} نقطة (${pointsWorth(REFERRAL_BONUS)} ر.س) لكل واحد!</div>
+          <div class="ref-code" id="refCode">${escH(ref.code)}</div>
+          <button class="btn btn--light btn--block" id="refCopy">📋 انسخ كودك</button>
+          <div class="ref-count">دعوت <b>${ref.count}</b> صديق ${ref.count ? '🎉' : ''}</div>
+          ${!ref.used ? `
+            <div class="ref-redeem">
+              <input type="text" id="refInput" placeholder="عندك كود صديق؟ أدخله" />
+              <button class="btn btn--primary" id="refRedeem" type="button">تفعيل</button>
+            </div>` : ''}
+        </div>` : '';
       acctBody.innerHTML = `
         <div class="acct-hello">أهلاً ${escH(p.full_name || 'بك')} 👋</div>
         <div class="acct-email">${escH(p.email)}</div>
         <div class="acct-points">🎁 نقاطك: <b>${myPoints}</b> <small>= ${pointsWorth(myPoints)} ر.س خصم</small></div>
         <button class="ghost-btn" id="custLogout" style="width:100%;margin:12px 0 18px">تسجيل الخروج</button>
+        ${refSection}
         <h4 class="acct-oh">اشتراكاتي الأسبوعية (${subs.length})</h4>
         <div class="subs-list">${subs.length ? subs.map(subCardRO).join('') : '<div class="aempty">ما عندك اشتراكات — اشترك من صفحة أي مطبخ</div>'}</div>
         <h4 class="acct-oh">طلباتي (${orders.length})</h4>
         <div class="orders-list">${orders.length ? orders.map(orderCardRO).join('') : '<div class="aempty">ما عندك طلبات بعد</div>'}</div>`;
       $('#custLogout').addEventListener('click', async () => { await SUFRAH.logout(); showToast('تم تسجيل الخروج'); refreshAcctBtn(); renderAcct(); });
+      const refCopy = $('#refCopy');
+      if (refCopy) refCopy.addEventListener('click', () => {
+        navigator.clipboard.writeText(ref.code).then(() => { refCopy.textContent = '✅ تم النسخ'; setTimeout(() => { refCopy.textContent = '📋 انسخ كودك'; }, 1500); });
+      });
+      const refRedeem = $('#refRedeem');
+      if (refRedeem) refRedeem.addEventListener('click', async () => {
+        const code = ($('#refInput').value || '').trim();
+        if (!code) { showToast('اكتب كود الصديق'); return; }
+        const rr = await SUFRAH.redeemReferral(code);
+        if (rr.ok) { showToast(`🎁 مبروك! ربحت أنت وصديقك ${rr.bonus} نقطة`); renderAcct(); }
+        else {
+          const msgs = { self: 'ما تقدر تستخدم كودك 😅', invalid_code: 'الكود غير صحيح', already_used: 'استخدمت كود من قبل', not_authed: 'سجّل دخولك' };
+          showToast('❌ ' + (msgs[rr.error] || 'تعذّر تفعيل الكود'));
+        }
+      });
     }
   }
   async function prefillCheckout() {

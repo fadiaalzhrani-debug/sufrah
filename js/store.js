@@ -231,6 +231,29 @@ const SUFRAH = (function () {
     return data || [];
   }
 
+  /* ---------- برنامج الإحالة (كود صديق) ---------- */
+  async function getReferralInfo() {
+    const u = await currentUser(); if (!u) return null;
+    const { data: prof, error } = await sb.from('profiles').select('referral_code').eq('id', u.id).maybeSingle();
+    if (error) return null; // العمود غير موجود بعد (لم تُشغّل level4.sql)
+    let code = prof && prof.referral_code;
+    if (!code) {
+      code = ('SF' + u.id.replace(/-/g, '').slice(0, 6)).toUpperCase();
+      await sb.from('profiles').upsert({ id: u.id, referral_code: code });
+    }
+    let count = 0, used = false;
+    const c = await sb.from('referrals').select('*', { count: 'exact', head: true }).eq('referrer_id', u.id);
+    if (!c.error) count = c.count || 0;
+    const us = await sb.from('referrals').select('id').eq('referred_id', u.id).maybeSingle();
+    if (!us.error) used = !!us.data;
+    return { code, count, used };
+  }
+  async function redeemReferral(code) {
+    const { data, error } = await sb.rpc('redeem_referral', { code: (code || '').trim() });
+    if (error) return { ok: false, error: error.message };
+    return data || { ok: false, error: 'unknown' };
+  }
+
   /* ---------- الاشتراكات الأسبوعية ---------- */
   async function createSubscription(s) {
     const u = await currentUser(); if (!u) return { ok: false, error: 'سجّل دخولك أولاً' };
@@ -289,7 +312,8 @@ const SUFRAH = (function () {
     register, login, logout, addDish, deleteDish, setKitchenOpen, getAnnouncements,
     createOrder, getKitchenOrders, getAllOrders, updateOrderStatus, subscribeOrders,
     currentUser, registerCustomer, loginCustomer, getProfile, saveProfile, saveCustomerData, getMyOrders,
-    savePoints, createSubscription, getMySubscriptions, updateSubscriptionStatus, deleteSubscription, getKitchenSubscriptions,
+    savePoints, getReferralInfo, redeemReferral,
+    createSubscription, getMySubscriptions, updateSubscriptionStatus, deleteSubscription, getKitchenSubscriptions,
     addReview, getKitchenReviews, getCoupon,
     getCart, saveCart,
   };
