@@ -559,6 +559,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .dchip input { display: none; }
 .dchip.is-active { background: var(--primary-soft); border-color: var(--primary); color: var(--primary-dark); }
 
+/* جدولة الطلب */
+.sched-box { margin: 12px 2px 2px; display: flex; flex-direction: column; gap: 12px; }
+.sched-row { display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
+.sched-lbl { font-size: 13px; font-weight: 800; color: var(--muted); width: 100%; margin-bottom: 2px; }
+.sched-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.sched-none { font-size: 13px; color: var(--muted); font-weight: 700; }
+.order__sched { margin: 6px 0 2px; font-size: 13px; font-weight: 800; color: var(--primary-dark); background: var(--primary-soft); border-radius: 9px; padding: 6px 11px; display: inline-block; }
+
 /* ===================================================
    صفحة الأسر المنتجة
    =================================================== */

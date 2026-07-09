@@ -13,6 +13,9 @@
   let deliveryMethod = 'pickup';
   let deliveryDistance = 'near';
   let paymentMethod = 'cash';
+  let orderTiming = 'asap';   // asap | schedule
+  let schedDay = 0;           // إزاحة الأيام عن اليوم
+  let schedSlot = null;       // معرّف الفترة الزمنية
   let cart = SUFRAH.getCart();
   const CITIES = ['كل المدن', 'الرياض', 'جدة', 'مكة', 'المدينة المنورة', 'الدمام', 'الخبر', 'القصيم', 'الطائف', 'الأحساء', 'أبها', 'تبوك', 'حائل', 'جازان'];
   let loc = (function () { try { return { city: (JSON.parse(localStorage.getItem('sufrah_location')) || {}).city || 'كل المدن' }; } catch { return { city: 'كل المدن' }; } })();
@@ -320,6 +323,82 @@
       </div>`;
   }
 
+  /* ---------- جدولة الطلب (احجز وقت) ---------- */
+  function slotDate(dayOffset, slot) {
+    const d = new Date();
+    d.setDate(d.getDate() + dayOffset);
+    d.setHours(slot.h, 0, 0, 0);
+    return d;
+  }
+  function slotAvailable(dayOffset, slot) {
+    if (dayOffset > 0) return true; // الأيام القادمة كل فتراتها متاحة
+    return slotDate(0, slot).getTime() >= Date.now() + SCHEDULE_LEAD_HOURS * 3600 * 1000;
+  }
+  function dayLabel(offset) {
+    if (offset === 0) return 'اليوم';
+    if (offset === 1) return 'غداً';
+    const d = new Date(); d.setDate(d.getDate() + offset);
+    return d.toLocaleDateString('ar', { weekday: 'long', day: 'numeric', month: 'numeric' });
+  }
+  function fmtSched(s) {
+    try { return new Date(s).toLocaleString('ar', { weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+    catch { return ''; }
+  }
+  function schedLabelText() {
+    const slot = TIME_SLOT_BY_ID[schedSlot];
+    if (!slot) return '';
+    return `${dayLabel(schedDay)} · ${slot.label}`;
+  }
+  function renderTimingOptions() {
+    const isSched = orderTiming === 'schedule';
+    const asapNote = deliveryMethod === 'pickup' ? 'جاهز بأقرب وقت للاستلام' : 'يوصلك بأقرب وقت';
+    let sched = '';
+    if (isSched) {
+      // الأيام المتاحة (تجاهل اليوم لو ما بقي فيه فترات)
+      const days = [];
+      for (let i = 0; i <= SCHEDULE_DAYS_AHEAD; i++) {
+        if (i === 0 && !TIME_SLOTS.some((s) => slotAvailable(0, s))) continue;
+        days.push(i);
+      }
+      if (!days.includes(schedDay)) schedDay = days[0];
+      const dayChips = days.map((i) => `
+        <label class="dchip ${i === schedDay ? 'is-active' : ''}">
+          <input type="radio" name="schedday" value="${i}" ${i === schedDay ? 'checked' : ''} />
+          ${dayLabel(i)}
+        </label>`).join('');
+      // الفترات المتاحة لليوم المختار
+      const slots = TIME_SLOTS.filter((s) => slotAvailable(schedDay, s));
+      if (!slots.some((s) => s.id === schedSlot)) schedSlot = slots.length ? slots[0].id : null;
+      const slotChips = slots.length
+        ? slots.map((s) => `
+          <label class="dchip ${s.id === schedSlot ? 'is-active' : ''}">
+            <input type="radio" name="schedslot" value="${s.id}" ${s.id === schedSlot ? 'checked' : ''} />
+            ${s.label}
+          </label>`).join('')
+        : '<span class="sched-none">ما فيه مواعيد اليوم — اختر يوم ثاني</span>';
+      sched = `
+        <div class="sched-box">
+          <div class="sched-row"><span class="sched-lbl">📅 اليوم</span><div class="sched-chips">${dayChips}</div></div>
+          <div class="sched-row"><span class="sched-lbl">⏰ الوقت</span><div class="sched-chips">${slotChips}</div></div>
+        </div>`;
+    }
+    return `
+      <div class="delivery-pick">
+        <div class="delivery-pick__title">متى تبي طلبك؟</div>
+        <label class="dopt ${!isSched ? 'is-active' : ''}">
+          <input type="radio" name="timing" value="asap" ${!isSched ? 'checked' : ''} />
+          <span class="dopt__emoji">⚡</span>
+          <span class="dopt__info"><strong>في أقرب وقت</strong><small>${asapNote}</small></span>
+        </label>
+        <label class="dopt ${isSched ? 'is-active' : ''}">
+          <input type="radio" name="timing" value="schedule" ${isSched ? 'checked' : ''} />
+          <span class="dopt__emoji">📅</span>
+          <span class="dopt__info"><strong>احجز وقت لاحق</strong><small>تختار اليوم والساعة — مناسب لأكل يحتاج تحضير</small></span>
+        </label>
+        ${sched}
+      </div>`;
+  }
+
   function updateCartUI() {
     const count = cartQtyTotal();
     cartCount.textContent = count;
@@ -354,7 +433,7 @@
           <button class="cart-item__remove" data-remove="${id}" aria-label="حذف">🗑️</button>
         </div>`;
       }).join('');
-      drawerBody.innerHTML = items + renderDeliveryOptions() + renderPaymentOptions();
+      drawerBody.innerHTML = items + renderDeliveryOptions() + renderTimingOptions() + renderPaymentOptions();
     }
 
     const subtotal = cartSubtotal();
@@ -364,6 +443,11 @@
     $('#delivery').textContent = fee ? priceLabel(fee) : 'مجاناً';
     const dRow = $('#discountRow');
     if (dRow) { if (discount > 0) { dRow.hidden = false; $('#discountVal').textContent = '- ' + priceLabel(discount); } else dRow.hidden = true; }
+    const sRow = $('#schedRow');
+    if (sRow) {
+      if (subtotal > 0 && orderTiming === 'schedule') { sRow.hidden = false; $('#schedVal').textContent = schedLabelText() || 'اختر الوقت'; }
+      else sRow.hidden = true;
+    }
     $('#total').textContent = priceLabel(Math.max(0, subtotal + fee - discount));
   }
 
@@ -421,9 +505,10 @@
   function orderCardRO(o) {
     const st = ORDER_STATUS[o.status] || ORDER_STATUS.new;
     const items = (o.items || []).map((it) => `${it.qty}× ${escH(it.name)}`).join('، ');
+    const sched = o.scheduled_for ? `<div class="order__sched">📅 موعد الطلب: ${fmtSched(o.scheduled_for)}</div>` : '';
     return `<div class="order order--${o.status}">
       <div class="order__top"><span class="ostatus ostatus--${o.status}">${st.emoji} ${st.label}</span><span class="order__total">${o.total} ر.س</span></div>
-      <div class="order__items">${items}</div></div>`;
+      <div class="order__items">${items}</div>${sched}</div>`;
   }
   async function renderAcct() {
     const user = await SUFRAH.currentUser();
@@ -556,6 +641,9 @@
       if (e.target.name === 'delivery') { deliveryMethod = e.target.value; updateCartUI(); }
       if (e.target.name === 'distance') { deliveryDistance = e.target.value; updateCartUI(); }
       if (e.target.name === 'payment') { paymentMethod = e.target.value; updateCartUI(); }
+      if (e.target.name === 'timing') { orderTiming = e.target.value; updateCartUI(); }
+      if (e.target.name === 'schedday') { schedDay = +e.target.value; schedSlot = null; updateCartUI(); }
+      if (e.target.name === 'schedslot') { schedSlot = e.target.value; updateCartUI(); }
     });
 
     $('#cartBtn').addEventListener('click', openDrawer);
@@ -600,6 +688,12 @@
       const address = ($('#coAddress').value || '').trim();
       if (!name || !phone) { showToast('اكتب الاسم ورقم الجوال 📞'); return; }
       if (paymentMethod === 'card') { showToast('💳 الدفع بالبطاقة قريباً — اختر «عند الاستلام» حالياً'); return; }
+      let scheduledFor = null;
+      if (orderTiming === 'schedule') {
+        const slot = TIME_SLOT_BY_ID[schedSlot];
+        if (!slot || !slotAvailable(schedDay, slot)) { showToast('اختر يوم ووقت الاستلام 📅'); return; }
+        scheduledFor = slotDate(schedDay, slot).toISOString();
+      }
       const fee = deliveryFee();
       const totalSub = cartSubtotal();
       const totalDisc = discountAmount(totalSub);
@@ -615,18 +709,22 @@
       for (const [kid, items] of Object.entries(groups)) {
         const subtotal = items.reduce((s, it) => s + it.price * it.qty, 0);
         const orderDisc = totalSub > 0 ? Math.round(totalDisc * subtotal / totalSub) : 0;
-        const res = await SUFRAH.createOrder({
+        const orderObj = {
           kitchen_id: kid, customer_name: name, customer_phone: phone, address,
           delivery_method: deliveryMethod, payment_method: paymentMethod,
           items, subtotal, delivery_fee: fee, total: Math.max(0, subtotal + fee - orderDisc),
-        });
+        };
+        if (scheduledFor) orderObj.scheduled_for = scheduledFor;
+        const res = await SUFRAH.createOrder(orderObj);
         if (res.ok) okCount++;
       }
       btn.disabled = false; btn.textContent = 'إتمام الطلب';
       if (okCount > 0) {
         SUFRAH.saveProfile({ name, phone, address });
-        cart = {}; coupon = null; $('#couponCode').value = ''; saveCartAll(); updateCartUI(); closeDrawer();
-        showToast('🎉 تم إرسال طلبك للأسرة! بتجهّزه وتتواصل معك.');
+        cart = {}; coupon = null; $('#couponCode').value = '';
+        orderTiming = 'asap'; schedDay = 0; schedSlot = null;
+        saveCartAll(); updateCartUI(); closeDrawer();
+        showToast(scheduledFor ? '🎉 تم حجز طلبك! بيوصلك بالموعد المحدد.' : '🎉 تم إرسال طلبك للأسرة! بتجهّزه وتتواصل معك.');
       } else {
         showToast('تعذّر إرسال الطلب، حاول مرة ثانية');
       }

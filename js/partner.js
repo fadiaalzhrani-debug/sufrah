@@ -122,6 +122,7 @@
 
   /* ---------- الطلبات الواردة ---------- */
   const fmtT = (s) => { try { return new Date(s).toLocaleString('ar', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' }); } catch { return ''; } };
+  const fmtSched = (s) => { try { return new Date(s).toLocaleString('ar', { weekday: 'long', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return ''; } };
   function orderActions(o) {
     const b = (to, label, cls) => `<button class="abtn ${cls}" data-order="${o.id}" data-to="${to}">${label}</button>`;
     if (o.status === 'new') return b('preparing', 'قبول ✅', 'abtn--go') + ' ' + b('cancelled', 'رفض', 'abtn--danger');
@@ -140,12 +141,16 @@
         const items = (o.items || []).map((it) => `${it.qty}× ${escHtml(it.name)}`).join('، ');
         const dm = (DELIVERY_TYPES[o.delivery_method] || {}).name || '';
         const pm = (PAYMENT_TYPES[o.payment_method] || PAYMENT_TYPES.cash);
+        const schedLine = o.scheduled_for
+          ? `<div class="order__sched">📅 موعد التسليم: <b>${fmtSched(o.scheduled_for)}</b></div>`
+          : '';
         return `
         <div class="order order--${o.status}">
           <div class="order__top">
             <span class="ostatus ostatus--${o.status}">${st.emoji} ${st.label}</span>
             <span class="order__time">${fmtT(o.created_at)}</span>
           </div>
+          ${schedLine}
           <div class="order__cust">👤 ${escHtml(o.customer_name || '')} · 📞 ${escHtml(o.customer_phone || '')}</div>
           ${o.address ? `<div class="order__addr">📍 ${escHtml(o.address)}</div>` : ''}
           <div class="order__items">${items}</div>

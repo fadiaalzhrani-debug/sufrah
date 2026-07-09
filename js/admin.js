@@ -91,12 +91,15 @@
       const kName = (state.kitchens.find((k) => k.id === o.kitchen_id) || {}).name || '';
       const items = (o.items || []).map((it) => `${it.qty}× ${esc(it.name)}`).join('، ');
       const pm = (PAYMENT_TYPES[o.payment_method] || PAYMENT_TYPES.cash);
+      const sched = o.scheduled_for
+        ? ' · 📅 ' + (() => { try { return new Date(o.scheduled_for).toLocaleString('ar', { weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return ''; } })()
+        : '';
       return `
       <div class="arow">
         <div class="arow__main">
           <span class="arow__emoji">📦</span>
           <div><b>${esc(o.customer_name || '')} <span class="ostatus ostatus--${o.status}">${st.emoji} ${st.label}</span></b>
-            <small>${esc(kName)} · ${o.total} ر.س · ${pm.emoji} · ${esc(o.customer_phone || '')} · ${items}</small></div>
+            <small>${esc(kName)} · ${o.total} ر.س · ${pm.emoji} · ${esc(o.customer_phone || '')}${sched} · ${items}</small></div>
         </div>
         <button class="abtn abtn--danger" data-delorder="${o.id}">حذف</button>
       </div>`;

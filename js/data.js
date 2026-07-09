@@ -70,6 +70,20 @@ const ORDER_STATUS = {
   cancelled:  { label: 'ملغي',         emoji: '❌' },
 };
 
+// جدولة الطلب — العميل يحجز يوم ووقت الاستلام/التوصيل
+const SCHEDULE_LEAD_HOURS = 2;   // أقل مهلة تحضير قبل الموعد (اليوم نفسه)
+const SCHEDULE_DAYS_AHEAD = 4;   // كم يوم قدّام يقدر يحجز
+const TIME_SLOTS = [
+  { id: 's8',  label: '٨:٠٠ ص',  h: 8 },
+  { id: 's10', label: '١٠:٠٠ ص', h: 10 },
+  { id: 's12', label: '١٢:٠٠ ظ', h: 12 },
+  { id: 's14', label: '٢:٠٠ م',  h: 14 },
+  { id: 's16', label: '٤:٠٠ م',  h: 16 },
+  { id: 's18', label: '٦:٠٠ م',  h: 18 },
+  { id: 's20', label: '٨:٠٠ م',  h: 20 },
+];
+const TIME_SLOT_BY_ID = Object.fromEntries(TIME_SLOTS.map((s) => [s.id, s]));
+
 // الأسر المنتجة (Seed)
 const FAMILIES = [
   { id: 'f1', name: 'مطبخ أم سعود', spec: 'أكلات شعبية سعودية', cuisine: 'saudi',  rating: 4.9, time: '٤٥ د', cover: '🍛', grad: G.orange,     city: 'الرياض' },
