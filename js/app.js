@@ -16,6 +16,8 @@
   let orderTiming = 'asap';   // asap | schedule
   let schedDay = 0;           // إزاحة الأيام عن اليوم
   let schedSlot = null;       // معرّف الفترة الزمنية
+  let myPoints = 0;           // رصيد نقاط العميل
+  let redeemPoints = false;   // استخدام النقاط في هذا الطلب
   let cart = SUFRAH.getCart();
   const CITIES = ['كل المدن', 'الرياض', 'جدة', 'مكة', 'المدينة المنورة', 'الدمام', 'الخبر', 'القصيم', 'الطائف', 'الأحساء', 'أبها', 'تبوك', 'حائل', 'جازان'];
   let loc = (function () { try { return { city: (JSON.parse(localStorage.getItem('sufrah_location')) || {}).city || 'كل المدن' }; } catch { return { city: 'كل المدن' }; } })();
@@ -187,6 +189,13 @@
         ${dishes.length
           ? `<div class="dishes">${dishes.map(dishCard).join('')}</div>`
           : `<div class="empty"><span>🍳</span><p>هذا المطبخ ما أضاف أطباق بعد</p></div>`}
+        <div class="sub-box">
+          <h3 class="kview__dtitle">📅 اشترك أسبوعياً</h3>
+          <p class="sub-box__hint">اختر أيام الأسبوع اللي تبي «${fam.name}» يجهّز لك فيها — والأسرة تعرف طلبك الثابت وتخطّط له.</p>
+          <div class="sub-days" id="subDays">${WEEKDAYS.map((d) => `<label class="dchip"><input type="checkbox" value="${d.id}" />${d.name}</label>`).join('')}</div>
+          <input class="sub-note" id="subNote" type="text" placeholder="ملاحظة: نوع الوجبة المفضّلة (اختياري)" />
+          <button class="btn btn--primary" id="subSubmit">اشترك الآن</button>
+        </div>
         <div class="kview__reviews">
           <h3 class="kview__dtitle">⭐ التقييمات</h3>
           <div id="reviewsArea">جاري التحميل…</div>
@@ -264,6 +273,20 @@
       });
     }
   }
+  async function submitSubscription(kid) {
+    const user = await SUFRAH.currentUser();
+    if (!user) { showToast('سجّل دخولك أول (زر 👤 فوق) عشان تشترك'); return; }
+    const days = [...document.querySelectorAll('#subDays input:checked')].map((c) => c.value);
+    if (!days.length) { showToast('اختر يوم واحد على الأقل 📅'); return; }
+    const p = await SUFRAH.getProfile();
+    const btn = $('#subSubmit'); if (btn) { btn.disabled = true; btn.textContent = '⏳ جاري الاشتراك…'; }
+    const res = await SUFRAH.createSubscription({ kitchen_id: kid, days, note: ($('#subNote').value || '').trim(), customer_name: p ? p.full_name : '', customer_phone: p ? p.phone : '' });
+    if (btn) { btn.disabled = false; btn.textContent = 'اشترك الآن'; }
+    if (!res.ok) { showToast('تعذّر الاشتراك، حاول لاحقاً'); return; }
+    showToast('✅ تم اشتراكك الأسبوعي! تابعه من 👤 حسابي');
+    document.querySelectorAll('#subDays input:checked').forEach((c) => { c.checked = false; const l = c.closest('.dchip'); if (l) l.classList.remove('is-active'); });
+    if ($('#subNote')) $('#subNote').value = '';
+  }
   function openKitchen(id) {
     if (!renderKitchen(id)) return;
     openKitchenId = id;
@@ -316,6 +339,20 @@
     if (!coupon) return 0;
     if (coupon.discount_type === 'percent') return Math.round(subtotal * Number(coupon.value) / 100);
     return Math.min(Number(coupon.value), subtotal);
+  }
+  const pointsWorth = (pts) => Math.floor((pts || 0) / POINTS_PER_SAR_REDEEM); // قيمة النقاط بالريال
+  function pointsDiscountAmt(cap) {
+    if (!redeemPoints || myPoints < POINTS_PER_SAR_REDEEM) return 0;
+    return Math.min(pointsWorth(myPoints), Math.max(0, cap));
+  }
+  function renderPointsRedeem() {
+    if (myPoints < POINTS_PER_SAR_REDEEM) return '';
+    return `
+      <label class="points-redeem ${redeemPoints ? 'is-active' : ''}">
+        <input type="checkbox" id="redeemToggle" ${redeemPoints ? 'checked' : ''} />
+        <span class="points-redeem__emoji">🎁</span>
+        <span class="points-redeem__info"><strong>استخدم نقاطك</strong><small>لديك ${myPoints} نقطة = ${pointsWorth(myPoints)} ر.س خصم</small></span>
+      </label>`;
   }
   function renderDeliveryOptions() {
     const distance = deliveryMethod === 'family' ? `
@@ -470,22 +507,25 @@
           <button class="cart-item__remove" data-remove="${id}" aria-label="حذف">🗑️</button>
         </div>`;
       }).join('');
-      drawerBody.innerHTML = items + renderDeliveryOptions() + renderTimingOptions() + renderPaymentOptions();
+      drawerBody.innerHTML = items + renderDeliveryOptions() + renderTimingOptions() + renderPaymentOptions() + renderPointsRedeem();
     }
 
     const subtotal = cartSubtotal();
     const fee = subtotal > 0 ? deliveryFee() : 0;
-    const discount = subtotal > 0 ? discountAmount(subtotal) : 0;
+    const couponDisc = subtotal > 0 ? discountAmount(subtotal) : 0;
+    const ptsDisc = subtotal > 0 ? pointsDiscountAmt(subtotal - couponDisc) : 0;
     $('#subtotal').textContent = priceLabel(subtotal);
     $('#delivery').textContent = fee ? priceLabel(fee) : 'مجاناً';
     const dRow = $('#discountRow');
-    if (dRow) { if (discount > 0) { dRow.hidden = false; $('#discountVal').textContent = '- ' + priceLabel(discount); } else dRow.hidden = true; }
+    if (dRow) { if (couponDisc > 0) { dRow.hidden = false; $('#discountVal').textContent = '- ' + priceLabel(couponDisc); } else dRow.hidden = true; }
+    const pRow = $('#pointsRow');
+    if (pRow) { if (ptsDisc > 0) { pRow.hidden = false; $('#pointsVal').textContent = '- ' + priceLabel(ptsDisc); } else pRow.hidden = true; }
     const sRow = $('#schedRow');
     if (sRow) {
       if (subtotal > 0 && orderTiming === 'schedule') { sRow.hidden = false; $('#schedVal').textContent = schedLabelText() || 'اختر الوقت'; }
       else sRow.hidden = true;
     }
-    $('#total').textContent = priceLabel(Math.max(0, subtotal + fee - discount));
+    $('#total').textContent = priceLabel(Math.max(0, subtotal + fee - couponDisc - ptsDisc));
   }
 
   /* ---------- فتح/إغلاق ---------- */
@@ -550,6 +590,20 @@
       <div class="order__items">${items}</div>${sched}
       <button class="order__reorder" data-reorder="${o.id}">🔁 اطلب مرة ثانية</button></div>`;
   }
+  function subCardRO(s) {
+    const fam = SUFRAH.familyById(s.kitchen_id);
+    const days = (s.days || []).map((d) => (WEEKDAY_BY_ID[d] || {}).name || d).join('، ');
+    const paused = s.status === 'paused';
+    return `<div class="sub ${paused ? 'sub--paused' : ''}">
+      <div class="sub__top"><b>${fam ? escH(fam.name) : 'مطبخ'}</b><span class="sub__status">${paused ? '⏸ موقوف' : '🟢 نشط'}</span></div>
+      <div class="sub__days">📅 ${days || '—'}</div>
+      ${s.note ? `<div class="sub__note">📝 ${escH(s.note)}</div>` : ''}
+      <div class="sub__actions">
+        <button class="ghost-btn" data-subtoggle="${s.id}" data-to="${paused ? 'active' : 'paused'}">${paused ? '▶ تفعيل' : '⏸ إيقاف مؤقت'}</button>
+        <button class="ghost-btn ghost-btn--danger" data-subcancel="${s.id}">🗑️ إلغاء</button>
+      </div>
+    </div>`;
+  }
   function reorder(orderId) {
     const o = lastOrders.find((x) => x.id === orderId);
     if (!o || !Array.isArray(o.items)) return;
@@ -612,13 +666,16 @@
         showToast('🎉 تم إنشاء حسابك'); await refreshAcctBtn(); pushCloud(); renderAcct();
       });
     } else {
-      const p = await SUFRAH.getProfile();
-      const orders = await SUFRAH.getMyOrders();
+      const [p, orders, subs] = await Promise.all([SUFRAH.getProfile(), SUFRAH.getMyOrders(), SUFRAH.getMySubscriptions()]);
       lastOrders = orders;
+      myPoints = (p && p.points) || 0;
       acctBody.innerHTML = `
         <div class="acct-hello">أهلاً ${escH(p.full_name || 'بك')} 👋</div>
         <div class="acct-email">${escH(p.email)}</div>
-        <button class="ghost-btn" id="custLogout" style="width:100%;margin:12px 0 20px">تسجيل الخروج</button>
+        <div class="acct-points">🎁 نقاطك: <b>${myPoints}</b> <small>= ${pointsWorth(myPoints)} ر.س خصم</small></div>
+        <button class="ghost-btn" id="custLogout" style="width:100%;margin:12px 0 18px">تسجيل الخروج</button>
+        <h4 class="acct-oh">اشتراكاتي الأسبوعية (${subs.length})</h4>
+        <div class="subs-list">${subs.length ? subs.map(subCardRO).join('') : '<div class="aempty">ما عندك اشتراكات — اشترك من صفحة أي مطبخ</div>'}</div>
         <h4 class="acct-oh">طلباتي (${orders.length})</h4>
         <div class="orders-list">${orders.length ? orders.map(orderCardRO).join('') : '<div class="aempty">ما عندك طلبات بعد</div>'}</div>`;
       $('#custLogout').addEventListener('click', async () => { await SUFRAH.logout(); showToast('تم تسجيل الخروج'); refreshAcctBtn(); renderAcct(); });
@@ -632,6 +689,8 @@
       const locAddr = loc.city !== 'كل المدن' ? loc.city : '';
       $('#coAddress').value = (p && p.address) || locAddr;
     }
+    myPoints = (p && p.points) || 0;
+    updateCartUI(); // لإظهار خيار استخدام النقاط
   }
 
   /* ---------- الموقع ---------- */
@@ -691,7 +750,14 @@
     });
     kitchenView.addEventListener('click', (e) => {
       if (e.target.closest('#kviewBack')) { closeKitchen(); return; }
+      if (e.target.closest('#subSubmit')) { submitSubscription(openKitchenId); return; }
       onDishClick(e);
+    });
+    kitchenView.addEventListener('change', (e) => {
+      if (e.target.closest('#subDays')) {
+        const lbl = e.target.closest('.dchip');
+        if (lbl) lbl.classList.toggle('is-active', e.target.checked);
+      }
     });
 
     drawerBody.addEventListener('click', (e) => {
@@ -707,6 +773,7 @@
       if (e.target.name === 'timing') { orderTiming = e.target.value; updateCartUI(); }
       if (e.target.name === 'schedday') { schedDay = +e.target.value; schedSlot = null; updateCartUI(); }
       if (e.target.name === 'schedslot') { schedSlot = e.target.value; updateCartUI(); }
+      if (e.target.id === 'redeemToggle') { redeemPoints = e.target.checked; updateCartUI(); }
     });
 
     $('#cartBtn').addEventListener('click', openDrawer);
@@ -715,9 +782,13 @@
     $('#accountBtn').addEventListener('click', openAcct);
     $('#acctClose').addEventListener('click', closeAcct);
     acctOverlay.addEventListener('click', closeAcct);
-    acctBody.addEventListener('click', (e) => {
+    acctBody.addEventListener('click', async (e) => {
       const rb = e.target.closest('[data-reorder]');
-      if (rb) reorder(rb.dataset.reorder);
+      if (rb) { reorder(rb.dataset.reorder); return; }
+      const stg = e.target.closest('[data-subtoggle]');
+      if (stg) { await SUFRAH.updateSubscriptionStatus(stg.dataset.subtoggle, stg.dataset.to); showToast(stg.dataset.to === 'paused' ? '⏸ تم إيقاف الاشتراك' : '🟢 تم تفعيل الاشتراك'); renderAcct(); return; }
+      const scl = e.target.closest('[data-subcancel]');
+      if (scl) { await SUFRAH.deleteSubscription(scl.dataset.subcancel); showToast('🗑️ تم إلغاء الاشتراك'); renderAcct(); return; }
     });
     $('#locationBtn').addEventListener('click', openLoc);
     $('#locClose').addEventListener('click', closeLoc);
@@ -763,7 +834,9 @@
       }
       const fee = deliveryFee();
       const totalSub = cartSubtotal();
-      const totalDisc = discountAmount(totalSub);
+      const couponD = discountAmount(totalSub);
+      const ptsD = pointsDiscountAmt(totalSub - couponD);
+      const totalDisc = couponD + ptsD;
 
       // نجمّع الطلب حسب كل مطبخ (طلب مستقل لكل أسرة)
       const groups = {};
@@ -772,26 +845,35 @@
         (groups[d.familyId] = groups[d.familyId] || []).push({ dish_id: id, name: d.name, price: d.price, qty });
       });
       const btn = $('#checkoutBtn'); btn.disabled = true; btn.textContent = '⏳ جاري إرسال الطلب…';
-      let okCount = 0;
+      let okCount = 0, paidSum = 0;
       for (const [kid, items] of Object.entries(groups)) {
         const subtotal = items.reduce((s, it) => s + it.price * it.qty, 0);
         const orderDisc = totalSub > 0 ? Math.round(totalDisc * subtotal / totalSub) : 0;
+        const orderTotal = Math.max(0, subtotal + fee - orderDisc);
         const orderObj = {
           kitchen_id: kid, customer_name: name, customer_phone: phone, address,
           delivery_method: deliveryMethod, payment_method: paymentMethod,
-          items, subtotal, delivery_fee: fee, total: Math.max(0, subtotal + fee - orderDisc),
+          items, subtotal, delivery_fee: fee, total: orderTotal,
         };
         if (scheduledFor) orderObj.scheduled_for = scheduledFor;
         const res = await SUFRAH.createOrder(orderObj);
-        if (res.ok) okCount++;
+        if (res.ok) { okCount++; paidSum += orderTotal; }
       }
       btn.disabled = false; btn.textContent = 'إتمام الطلب';
       if (okCount > 0) {
         SUFRAH.saveProfile({ name, phone, address });
+        let earned = 0;
+        if (myUserId) {
+          earned = Math.round(paidSum) * POINTS_PER_SAR;
+          const newPts = Math.max(0, myPoints - ptsD * POINTS_PER_SAR_REDEEM + earned);
+          SUFRAH.savePoints(newPts); myPoints = newPts;
+        }
         cart = {}; coupon = null; $('#couponCode').value = '';
-        orderTiming = 'asap'; schedDay = 0; schedSlot = null;
+        orderTiming = 'asap'; schedDay = 0; schedSlot = null; redeemPoints = false;
         saveCartAll(); updateCartUI(); closeDrawer();
-        showToast(scheduledFor ? '🎉 تم حجز طلبك! بيوصلك بالموعد المحدد.' : '🎉 تم إرسال طلبك للأسرة! بتجهّزه وتتواصل معك.');
+        let msg = scheduledFor ? '🎉 تم حجز طلبك! بيوصلك بالموعد المحدد.' : '🎉 تم إرسال طلبك للأسرة! بتجهّزه وتتواصل معك.';
+        if (earned > 0) msg += ` كسبت ${earned} نقطة 🎁`;
+        showToast(msg);
       } else {
         showToast('تعذّر إرسال الطلب، حاول مرة ثانية');
       }

@@ -80,6 +80,7 @@
     $('#dishCuisine').value = account.cuisine;
     renderMyDishes(account);
     renderOrders(account);
+    renderSubscribers(account);
     // إعلانات الأدمن
     SUFRAH.getAnnouncements().then((list) => {
       const b = $('#annBanner');
@@ -163,6 +164,24 @@
         </div>`;
       }).join('');
     });
+  }
+
+  /* ---------- المشتركون أسبوعياً ---------- */
+  function renderSubscribers(account) {
+    SUFRAH.getKitchenSubscriptions(account.id).then((subs) => {
+      const badge = $('#subsCount');
+      badge.textContent = subs.length; badge.hidden = subs.length === 0;
+      $('#subsEmpty').hidden = subs.length > 0;
+      $('#subsList').innerHTML = subs.map((s) => {
+        const days = (s.days || []).map((d) => (WEEKDAY_BY_ID[d] || {}).name || d).join('، ');
+        return `
+        <div class="order">
+          <div class="order__cust">👤 ${escHtml(s.customer_name || 'عميل')} · 📞 ${escHtml(s.customer_phone || '')}</div>
+          <div class="order__items">📅 ${days}</div>
+          ${s.note ? `<div class="order__addr">📝 ${escHtml(s.note)}</div>` : ''}
+        </div>`;
+      }).join('');
+    }).catch(() => {});
   }
 
   /* ---------- نافذة الإضافة ---------- */

@@ -1,5 +1,5 @@
 /* سُفرة — Service Worker (يعمل بدون إنترنت بعد أول فتح) */
-const CACHE = 'sufrah-v26';
+const CACHE = 'sufrah-v27';
 const ASSETS = [
   './',
   './index.html',

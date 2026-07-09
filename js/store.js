@@ -189,7 +189,13 @@ const SUFRAH = (function () {
       id: u.id, email: u.email,
       full_name: (data && data.full_name) || '', phone: (data && data.phone) || '', address: (data && data.address) || '',
       cart: (data && data.cart) || null, city: (data && data.city) || null, notifs: (data && data.notifs) || null,
+      points: (data && data.points) || 0,
     };
+  }
+  // حفظ رصيد النقاط (يفشل بصمت إن لم يوجد عمود points بعد — الميزة تتفعّل بعد تشغيل level3.sql)
+  async function savePoints(n) {
+    const u = await currentUser(); if (!u) return;
+    await sb.from('profiles').upsert({ id: u.id, points: Math.max(0, Math.round(n)) });
   }
   async function saveProfile(p) {
     const u = await currentUser(); if (!u) return { ok: false };
@@ -222,6 +228,30 @@ const SUFRAH = (function () {
   }
   async function getKitchenReviews(kid) {
     const { data } = await sb.from('reviews').select('*').eq('kitchen_id', kid).order('created_at', { ascending: false });
+    return data || [];
+  }
+
+  /* ---------- الاشتراكات الأسبوعية ---------- */
+  async function createSubscription(s) {
+    const u = await currentUser(); if (!u) return { ok: false, error: 'سجّل دخولك أولاً' };
+    const { error } = await sb.from('subscriptions').insert({
+      customer_id: u.id, customer_name: s.customer_name || null, customer_phone: s.customer_phone || null,
+      kitchen_id: s.kitchen_id, days: s.days || [], note: s.note || null,
+    });
+    return error ? { ok: false, error: error.message } : { ok: true };
+  }
+  async function getMySubscriptions() {
+    const u = await currentUser(); if (!u) return [];
+    const { data } = await sb.from('subscriptions').select('*').eq('customer_id', u.id).order('created_at', { ascending: false });
+    return data || [];
+  }
+  async function updateSubscriptionStatus(id, status) {
+    const { error } = await sb.from('subscriptions').update({ status }).eq('id', id);
+    return error ? { ok: false, error: error.message } : { ok: true };
+  }
+  async function deleteSubscription(id) { await sb.from('subscriptions').delete().eq('id', id); }
+  async function getKitchenSubscriptions(kid) {
+    const { data } = await sb.from('subscriptions').select('*').eq('kitchen_id', kid).eq('status', 'active').order('created_at', { ascending: false });
     return data || [];
   }
 
@@ -259,6 +289,7 @@ const SUFRAH = (function () {
     register, login, logout, addDish, deleteDish, setKitchenOpen, getAnnouncements,
     createOrder, getKitchenOrders, getAllOrders, updateOrderStatus, subscribeOrders,
     currentUser, registerCustomer, loginCustomer, getProfile, saveProfile, saveCustomerData, getMyOrders,
+    savePoints, createSubscription, getMySubscriptions, updateSubscriptionStatus, deleteSubscription, getKitchenSubscriptions,
     addReview, getKitchenReviews, getCoupon,
     getCart, saveCart,
   };
