@@ -10,6 +10,7 @@
   let searchTerm = '';
   let sortBy = 'new';
   let coupon = null;
+  let otpState = { sent: false };   // حالة الدخول برمز الجوال
   let deliveryMethod = 'pickup';
   let deliveryDistance = 'near';
   let paymentMethod = 'cash';
@@ -67,7 +68,8 @@
   /* ---------- الأسر ---------- */
   function renderFamilies() {
     let families = SUFRAH.allFamilies();
-    if (loc.city !== 'كل المدن') families = families.filter((f) => f.city === loc.city);
+    // المطبخ اللي ما حدّد مدينته يظهر في كل المدن — أفضل من اختفائه تماماً
+    if (loc.city !== 'كل المدن') families = families.filter((f) => !f.city || f.city === loc.city);
     familiesGrid.innerHTML = families.map((f) => `
       <article class="family ${f.isOpen === false ? 'family--closed' : ''}" data-family="${f.id}">
         <div class="family__cover" style="background:${f.grad}">
@@ -94,7 +96,7 @@
     return SUFRAH.allDishes().filter((d) => {
       if (activeCategory !== 'all' && d.cat !== activeCategory) return false;
       if (activeCuisine !== 'all' && d.cuisine !== activeCuisine) return false;
-      if (loc.city !== 'كل المدن') { const fam = SUFRAH.familyById(d.familyId); if (!fam || fam.city !== loc.city) return false; }
+      if (loc.city !== 'كل المدن') { const fam = SUFRAH.familyById(d.familyId); if (!fam || (fam.city && fam.city !== loc.city)) return false; }
       if (term) {
         const fam = SUFRAH.familyById(d.familyId);
         const hay = `${d.name} ${d.desc || ''} ${fam ? fam.name : ''}`;
@@ -629,49 +631,69 @@
   async function renderAcct() {
     const user = await SUFRAH.currentUser();
     if (!user) {
+      // الدخول برقم الجوال + رمز — نفس الخطوة تسجّل الجديد وتُدخل القديم
       acctBody.innerHTML = `
-        <div class="tabs">
-          <button class="tab is-active" data-atab="login">دخول</button>
-          <button class="tab" data-atab="register">حساب جديد</button>
-        </div>
-        <form id="custLogin">
-          <div class="field"><label>البريد الإلكتروني</label><input type="email" name="email" required placeholder="name@example.com" /></div>
-          <div class="field"><label>كلمة المرور</label><input type="password" name="password" required placeholder="••••••••" /></div>
+        <p class="acct-hint">${otpState.sent
+          ? `أرسلنا رمزاً برسالة إلى <b>${escH(otpState.shown)}</b>`
+          : 'ادخل برقم جوالك — يوصلك رمز برسالة. ما يحتاج بريد ولا كلمة مرور.'}</p>
+        ${otpState.sent ? `
+        <form id="otpVerify">
+          <div class="field"><label>رمز التحقق</label>
+            <input type="tel" name="code" inputmode="numeric" maxlength="6" required placeholder="------"
+                   style="letter-spacing:.5em;text-align:center;font-weight:800;font-size:1.2rem" /></div>
           <p class="form__error" id="clErr" hidden></p>
-          <button class="btn btn--primary btn--block" type="submit">دخول</button>
-        </form>
-        <form id="custReg" hidden>
-          <div class="field"><label>الاسم</label><input type="text" name="name" required placeholder="اسمك" /></div>
-          <div class="field"><label>رقم الجوال</label><input type="tel" name="phone" placeholder="05xxxxxxxx" /></div>
-          <div class="field"><label>البريد الإلكتروني</label><input type="email" name="email" required placeholder="name@example.com" /></div>
-          <div class="field"><label>كلمة المرور</label><input type="password" name="password" required placeholder="••••••••" /></div>
+          <button class="btn btn--primary btn--block" type="submit">تأكيد ودخول</button>
+          <button class="btn btn--light btn--block" type="button" id="otpBack" style="margin-top:8px">تغيير الرقم</button>
+        </form>` : `
+        <form id="otpSend">
+          <div class="field"><label>رقم الجوال</label><input type="tel" name="phone" inputmode="tel" required placeholder="05xxxxxxxx" /></div>
+          <div class="field"><label>الاسم <span style="opacity:.6">(لأول مرة)</span></label><input type="text" name="name" placeholder="اسمك" /></div>
           <div class="field"><label>كود صديق (اختياري) 🎁</label><input type="text" name="ref" placeholder="مثال: SF1A2B3C" /></div>
-          <p class="form__error" id="crErr" hidden></p>
-          <button class="btn btn--primary btn--block" type="submit">إنشاء الحساب</button>
-        </form>`;
-      acctBody.querySelectorAll('[data-atab]').forEach((t) => t.addEventListener('click', () => {
-        acctBody.querySelectorAll('.tab').forEach((x) => x.classList.remove('is-active')); t.classList.add('is-active');
-        const isLogin = t.dataset.atab === 'login';
-        $('#custLogin').hidden = !isLogin; $('#custReg').hidden = isLogin;
-      }));
-      $('#custLogin').addEventListener('submit', async (e) => {
-        e.preventDefault(); const fd = new FormData(e.target); const err = $('#clErr');
-        const res = await SUFRAH.loginCustomer(fd.get('email'), fd.get('password'));
-        if (!res.ok) { err.textContent = res.error; err.hidden = false; return; }
-        showToast('أهلاً فيك 👋'); await refreshAcctBtn(); await syncFromCloud(); renderAcct();
+          <p class="form__error" id="clErr" hidden></p>
+          <button class="btn btn--primary btn--block" type="submit">أرسل الرمز</button>
+        </form>`}`;
+
+      const sendForm = $('#otpSend');
+      if (sendForm) sendForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target); const err = $('#clErr');
+        const btn = e.target.querySelector('button[type=submit]');
+        if (btn) { btn.disabled = true; btn.textContent = '⏳ جارٍ الإرسال...'; }
+        const res = await SUFRAH.sendPhoneCode(fd.get('phone'));
+        if (!res.ok) {
+          err.textContent = res.error; err.hidden = false;
+          if (btn) { btn.disabled = false; btn.textContent = 'أرسل الرمز'; }
+          return;
+        }
+        otpState = { sent: true, phone: res.phone, shown: String(fd.get('phone') || '').trim(),
+                     name: (fd.get('name') || '').trim(), ref: (fd.get('ref') || '').trim() };
+        renderAcct();
       });
-      $('#custReg').addEventListener('submit', async (e) => {
-        e.preventDefault(); const fd = new FormData(e.target); const err = $('#crErr');
-        const res = await SUFRAH.registerCustomer({ name: fd.get('name'), phone: fd.get('phone'), email: fd.get('email'), password: fd.get('password') });
-        if (!res.ok) { err.textContent = res.error; err.hidden = false; return; }
-        await refreshAcctBtn();
-        const refCode = (fd.get('ref') || '').trim();
-        if (refCode) {
-          const rr = await SUFRAH.redeemReferral(refCode);
-          showToast(rr.ok ? `🎉 حسابك جاهز! أنت وصديقك ربحتوا ${rr.bonus} نقطة 🎁` : '🎉 تم إنشاء حسابك');
-        } else { showToast('🎉 تم إنشاء حسابك'); }
-        pushCloud(); renderAcct();
-      });
+
+      const verForm = $('#otpVerify');
+      if (verForm) {
+        $('#otpBack').addEventListener('click', () => { otpState = { sent: false }; renderAcct(); });
+        verForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const fd = new FormData(e.target); const err = $('#clErr');
+          const btn = e.target.querySelector('button[type=submit]');
+          if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+          const res = await SUFRAH.verifyPhoneCode(otpState.phone, fd.get('code'), otpState.name);
+          if (!res.ok) {
+            err.textContent = res.error; err.hidden = false;
+            if (btn) { btn.disabled = false; btn.textContent = 'تأكيد ودخول'; }
+            return;
+          }
+          const refCode = otpState.ref;
+          otpState = { sent: false };
+          await refreshAcctBtn();
+          if (refCode) {
+            const rr = await SUFRAH.redeemReferral(refCode);
+            showToast(rr.ok ? `🎉 أهلاً فيك! أنت وصديقك ربحتوا ${rr.bonus} نقطة 🎁` : 'أهلاً فيك 👋');
+          } else showToast('أهلاً فيك 👋');
+          await syncFromCloud(); pushCloud(); renderAcct();
+        });
+      }
     } else {
       const [p, orders, subs, ref] = await Promise.all([SUFRAH.getProfile(), SUFRAH.getMyOrders(), SUFRAH.getMySubscriptions(), SUFRAH.getReferralInfo()]);
       lastOrders = orders;
