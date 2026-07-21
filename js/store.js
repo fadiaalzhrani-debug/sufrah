@@ -280,8 +280,9 @@ const SUFRAH = (function () {
 
   /* ---------- الكوبونات ---------- */
   async function getCoupon(code) {
-    const { data } = await sb.from('coupons').select('*').eq('code', (code || '').trim().toUpperCase()).eq('active', true).maybeSingle();
-    return data || null;
+    // التحقق يتم في الخادم بالكود المُدخل فقط — قائمة الكوبونات غير قابلة للسرد
+    const { data } = await sb.rpc('check_coupon', { p_code: (code || '').trim() });
+    return (data && data.ok) ? { code: data.code, discount_type: data.discount_type, value: data.value } : null;
   }
   async function getKitchenOrders(kitchenId) {
     const { data } = await sb.from('orders').select('*').eq('kitchen_id', kitchenId).order('created_at', { ascending: false });
