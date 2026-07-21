@@ -182,6 +182,36 @@ const SUFRAH = (function () {
     const { error } = await sb.auth.signInWithPassword({ email: (email || '').trim(), password });
     return error ? { ok: false, error: 'البريد أو كلمة المرور غير صحيحة' } : { ok: true };
   }
+
+  /* ---------- الدخول برقم الجوال + رمز SMS (بدون بريد ولا كلمة مرور) ---------- */
+  function normPhone(v) {
+    let d = String(v || '').replace(/[^0-9]/g, '');
+    if (d.startsWith('00')) d = d.slice(2);
+    if (d.startsWith('0')) d = '966' + d.slice(1);
+    if (!d.startsWith('966')) d = '966' + d;
+    return d;
+  }
+  async function sendPhoneCode(phone) {
+    const d = normPhone(phone);
+    if (d.length < 12) return { ok: false, error: 'رقم الجوال غير صحيح' };
+    const { error } = await sb.auth.signInWithOtp({ phone: '+' + d, options: { channel: 'sms' } });
+    if (error) return { ok: false, error: 'تعذّر إرسال الرمز — تأكد من الرقم وحاول مرة ثانية' };
+    return { ok: true, phone: '+' + d, local: d };
+  }
+  async function verifyPhoneCode(phone, code, name) {
+    const d = normPhone(phone);
+    const { data, error } = await sb.auth.verifyOtp({ phone: '+' + d, token: String(code || '').trim(), type: 'sms' });
+    if (error) return { ok: false, error: 'الرمز غير صحيح أو انتهت صلاحيته' };
+    try {
+      const u = data && data.user;
+      if (u) {
+        const patch = { id: u.id, phone: d };
+        if (name && String(name).trim()) patch.full_name = String(name).trim();
+        await sb.from('profiles').upsert(patch);
+      }
+    } catch (e) { /* الملف الشخصي اختياري */ }
+    return { ok: true, user: data && data.user };
+  }
   async function getProfile() {
     const u = await currentUser(); if (!u) return null;
     const { data } = await sb.from('profiles').select('*').eq('id', u.id).maybeSingle();
@@ -312,7 +342,8 @@ const SUFRAH = (function () {
     allFamilies, allDishes, familyById, currentAccount, dishesByAccount,
     register, login, logout, addDish, deleteDish, setKitchenOpen, getAnnouncements,
     createOrder, getKitchenOrders, getAllOrders, updateOrderStatus, subscribeOrders,
-    currentUser, registerCustomer, loginCustomer, getProfile, saveProfile, saveCustomerData, getMyOrders,
+    currentUser, registerCustomer, loginCustomer, sendPhoneCode, verifyPhoneCode, normPhone,
+    getProfile, saveProfile, saveCustomerData, getMyOrders,
     savePoints, getReferralInfo, redeemReferral,
     createSubscription, getMySubscriptions, updateSubscriptionStatus, deleteSubscription, getKitchenSubscriptions,
     addReview, getKitchenReviews, getCoupon,
