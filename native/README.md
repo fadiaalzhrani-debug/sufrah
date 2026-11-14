@@ -4,8 +4,8 @@
 
 | التطبيق | المعرّف | الصفحة الأولى |
 |---|---|---|
-| سُفرة (العملاء) | `com.sufrah.app` | `index.html` |
-| سُفرة للأسر (المطابخ) | `com.sufrah.family` | `family.html` |
+| سُفرة (العملاء) | `sa.sufrah.app` | `index.html` |
+| سُفرة للأسر (المطابخ) | `sa.sufrah.family` | `family.html` |
 
 ملف البناء: `codemagic.yaml` في جذر المشروع، فيه 4 بنايات يدوية: `ios-customer`، `ios-family`، `android-customer`، `android-family`.
 

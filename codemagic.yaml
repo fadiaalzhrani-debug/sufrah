@@ -133,7 +133,7 @@ workflows:
       groups: [appstore]
       vars:
         APP_DIR: native/customer
-        BUNDLE_ID: com.sufrah.app
+        BUNDLE_ID: sa.sufrah.app
         DISPLAY_NAME: "سُفرة"
         CAMERA_TEXT: "لتصوير الطلب وإرفاق صورة مع تقييمك أو شكواك"
         PHOTOS_TEXT: "لاختيار صورة من معرضك ترفقها مع تقييمك أو شكواك"
@@ -152,7 +152,7 @@ workflows:
       groups: [appstore]
       vars:
         APP_DIR: native/family
-        BUNDLE_ID: com.sufrah.family
+        BUNDLE_ID: sa.sufrah.family
         DISPLAY_NAME: "سُفرة للأسر"
         CAMERA_TEXT: "لتصوير أطباقك ووثائق مطبخك"
         PHOTOS_TEXT: "لاختيار صور أطباقك من معرضك"
