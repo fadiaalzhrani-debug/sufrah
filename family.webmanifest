@@ -1,0 +1,20 @@
+{
+  "name": "سُفرة للأسر",
+  "short_name": "سُفرة أسر",
+  "description": "استقبل طلبات مطبخك البيتي وأدر منيوك وحسابك من جوالك",
+  "lang": "ar",
+  "dir": "rtl",
+  "id": "family.html",
+  "start_url": "family.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#5E0F29",
+  "background_color": "#5E0F29",
+  "categories": ["food", "business"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

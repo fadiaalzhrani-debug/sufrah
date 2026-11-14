@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- علامة سُفرة: صحن دائري عليه عين السدو -->
+  <circle cx="32" cy="32" r="30" fill="#9C2148"/>
+  <circle cx="32" cy="32" r="22" fill="none" stroke="#F4E9DD" stroke-width="2.4"/>
+  <path d="M32 18l12 14-12 14-12-14z" fill="#F4E9DD"/>
+  <path d="M32 25l6 7-6 7-6-7z" fill="#9C2148"/>
+  <path d="M32 29.5l2.2 2.5-2.2 2.5-2.2-2.5z" fill="#E9A23B"/>
+</svg>

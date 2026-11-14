@@ -1,0 +1,192 @@
+# سُفرة · بناء تطبيقات الجوال على Codemagic (العميل والأسر، آيفون وأندرويد)
+# كل البنايات يدوية (ما تشتغل مع كل رفع) عشان ما تنصرف دقائق بناء بدون قصد.
+# المطلوب مرة وحدة في Codemagic:
+#  - مجموعة متغيرات «appstore»: APP_STORE_CONNECT_ISSUER_ID و APP_STORE_CONNECT_KEY_IDENTIFIER و APP_STORE_CONNECT_KEY_B64 و CERTIFICATE_PRIVATE_KEY_B64
+#  - مجموعة «firebase»: GOOGLE_SERVICES_CUSTOMER_B64 و GOOGLE_SERVICES_FAMILY_B64 (ملفات google-services.json بصيغة Base64، للإشعارات بأندرويد)
+#  - مفاتيح توقيع أندرويد: sufrah_upload و sufrah_family_upload
+definitions:
+  ios_scripts: &ios_scripts
+    - name: تثبيت الحزم ونسخ الويب
+      script: |
+        cd "$APP_DIR"
+        npm install
+        npm run sync
+    - name: تجهيز منصة iOS
+      script: |
+        cd "$APP_DIR"
+        npx cap add ios || true
+        npx cap sync ios
+    - name: الأيقونة وشاشة البداية
+      script: |
+        cd "$APP_DIR"
+        mkdir -p assets && cp ../assets/icon-only.png assets/icon-only.png && cp ../assets/splash.png assets/splash.png && cp ../assets/splash-dark.png assets/splash-dark.png || true
+        npx capacitor-assets generate --ios --iconBackgroundColor '#9C2148' --iconBackgroundColorDark '#5E0F29' --splashBackgroundColor '#5E0F29' --splashBackgroundColorDark '#120D0F'
+    - name: الأذونات والإصدار
+      script: |
+        cd "$APP_DIR"
+        PLIST="ios/App/App/Info.plist"
+        setkey() { plutil -insert "$1" -string "$2" "$PLIST" 2>/dev/null || plutil -replace "$1" -string "$2" "$PLIST"; }
+        setkey NSCameraUsageDescription "$CAMERA_TEXT"
+        setkey NSPhotoLibraryUsageDescription "$PHOTOS_TEXT"
+        setkey NSLocationWhenInUseUsageDescription "$LOCATION_TEXT"
+        setkey CFBundleVersion "$BUILD_NUMBER"
+        setkey CFBundleShortVersionString "1.0.0"
+        setkey CFBundleDisplayName "$DISPLAY_NAME"
+        plutil -insert ITSAppUsesNonExemptEncryption -bool false "$PLIST" 2>/dev/null || plutil -replace ITSAppUsesNonExemptEncryption -bool false "$PLIST"
+        ruby -e "require 'xcodeproj'; p = Xcodeproj::Project.open('ios/App/App.xcodeproj'); t = p.targets.find { |x| x.name == 'App' }; \
+          t.build_configurations.each { |c| c.build_settings['TARGETED_DEVICE_FAMILY'] = '1'; c.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0' }; p.save"
+        find ios -name Podfile -maxdepth 3 -exec sed -i '' "s/platform :ios, '1[0-4][^']*'/platform :ios, '15.0'/" {} \; 2>/dev/null || true
+    - name: صلاحية الإشعارات
+      script: |
+        cd "$APP_DIR"
+        ENT="ios/App/App/App.entitlements"
+        printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>' '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' '<plist version="1.0"><dict/></plist>' > "$ENT"
+        /usr/libexec/PlistBuddy -c "Add :aps-environment string production" "$ENT"
+        ruby -e "require 'xcodeproj'; p = Xcodeproj::Project.open('ios/App/App.xcodeproj'); t = p.targets.find { |x| x.name == 'App' }; \
+          t.build_configurations.each { |c| c.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'App/App.entitlements' }; p.save"
+        AD="ios/App/App/AppDelegate.swift"
+        if ! grep -q "didRegisterForRemoteNotificationsWithDeviceToken" "$AD"; then
+          LAST=$(grep -n '^}' "$AD" | tail -1 | cut -d: -f1)
+          head -n $((LAST-1)) "$AD" > /tmp/ad.swift
+          printf '%s\n' '' \
+            '    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {' \
+            '        NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)' \
+            '    }' \
+            '    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {' \
+            '        NotificationCenter.default.post(name: .capacitorDidFailToRegisterForRemoteNotifications, object: error)' \
+            '    }' '}' >> /tmp/ad.swift
+          cp /tmp/ad.swift "$AD"
+        fi
+    - name: التوقيع
+      script: |
+        echo "$APP_STORE_CONNECT_KEY_B64" | base64 --decode > /tmp/AuthKey.p8
+        echo "$CERTIFICATE_PRIVATE_KEY_B64" | base64 --decode > /tmp/cert_key.pem
+        keychain initialize
+        export APP_STORE_CONNECT_PRIVATE_KEY="$(cat /tmp/AuthKey.p8)"
+        export CERTIFICATE_PRIVATE_KEY="$(cat /tmp/cert_key.pem)"
+        app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" --create
+        keychain add-certificates
+        cd "$APP_DIR" && xcode-project use-profiles
+        ruby -e "require 'xcodeproj'; p = Xcodeproj::Project.open('ios/App/App.xcodeproj'); t = p.targets.find { |x| x.name == 'App' }; \
+          t.build_configurations.each { |c| c.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'App/App.entitlements' }; p.save"
+    - name: بناء ورفع للـ App Store Connect
+      script: |
+        cd "$APP_DIR/ios/App"
+        xcode-project build-ipa --workspace "App.xcworkspace" --scheme "App"
+        IPA=$(find "$CM_BUILD_DIR" -name '*.ipa' | head -1)
+        export APP_STORE_CONNECT_PRIVATE_KEY="$(cat /tmp/AuthKey.p8)"
+        app-store-connect publish --path "$IPA" --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER"
+
+  android_scripts: &android_scripts
+    - name: تثبيت الحزم ونسخ الويب
+      script: |
+        cd "$APP_DIR"
+        npm install
+        npm run sync
+    - name: تجهيز منصة أندرويد والإشعارات
+      script: |
+        cd "$APP_DIR"
+        npx cap add android || true
+        npx cap sync android
+        echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
+        GS="$(printenv "$GS_VAR" || true)"; if [ -n "$GS" ]; then echo "$GS" | base64 --decode > android/app/google-services.json; fi
+        python3 - <<'PY'
+        import re, os
+        s = open('android/variables.gradle', encoding='utf-8').read()
+        s = re.sub(r'compileSdkVersion\s*=\s*\d+', 'compileSdkVersion = 35', s); s = re.sub(r'targetSdkVersion\s*=\s*\d+', 'targetSdkVersion = 35', s)
+        open('android/variables.gradle', 'w', encoding='utf-8').write(s)
+        if os.path.exists('android/app/google-services.json'):
+            b = open('android/build.gradle', encoding='utf-8').read()
+            if 'com.google.gms:google-services' not in b:
+                b = re.sub(r'(dependencies\s*\{)', r"\1\n        classpath 'com.google.gms:google-services:4.4.2'", b, count=1); open('android/build.gradle', 'w', encoding='utf-8').write(b)
+            a = open('android/app/build.gradle', encoding='utf-8').read()
+            if 'com.google.gms.google-services' not in a: a += "\napply plugin: 'com.google.gms.google-services'\n"
+            open('android/app/build.gradle', 'w', encoding='utf-8').write(a)
+        PY
+    - name: الأيقونة
+      script: |
+        cd "$APP_DIR"
+        mkdir -p assets && cp ../assets/icon-only.png assets/icon-only.png && cp ../assets/splash.png assets/splash.png || true
+        npx capacitor-assets generate --android --iconBackgroundColor '#9C2148' --iconBackgroundColorDark '#5E0F29' --splashBackgroundColor '#5E0F29' || true
+    - name: الإصدار والتوقيع
+      script: |
+        cd "$APP_DIR"
+        python3 - <<'PY'
+        import re, os
+        p = 'android/app/build.gradle'; s = open(p, encoding='utf-8').read()
+        vc = str(int(os.environ.get('PROJECT_BUILD_NUMBER') or os.environ.get('BUILD_NUMBER') or '1') + 1000)
+        s = re.sub(r'versionCode\s+\d+', 'versionCode ' + vc, s, count=1); s = re.sub(r'versionName\s+"[^"]*"', 'versionName "1.0.0"', s, count=1)
+        s = re.sub(r'(buildTypes\s*\{\s*release\s*\{)', r'\1 signingConfig signingConfigs.release', s, count=1)
+        sign = '\n    signingConfigs {\n        release {\n            storeFile file(System.getenv("CM_KEYSTORE_PATH"))\n            storePassword System.getenv("CM_KEYSTORE_PASSWORD")\n            keyAlias System.getenv("CM_KEY_ALIAS")\n            keyPassword System.getenv("CM_KEY_PASSWORD")\n        }\n    }'
+        s = s.replace('android {', 'android {' + sign, 1); open(p, 'w', encoding='utf-8').write(s)
+        PY
+    - name: بناء AAB موقّع
+      script: |
+        cd "$APP_DIR/android" && chmod +x ./gradlew && ./gradlew bundleRelease
+
+workflows:
+  ios-customer:
+    name: سُفرة iOS
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      groups: [appstore]
+      vars:
+        APP_DIR: native/customer
+        BUNDLE_ID: com.sufrah.app
+        DISPLAY_NAME: "سُفرة"
+        CAMERA_TEXT: "لتصوير الطلب وإرفاق صورة مع تقييمك أو شكواك"
+        PHOTOS_TEXT: "لاختيار صورة من معرضك ترفقها مع تقييمك أو شكواك"
+        LOCATION_TEXT: "نستخدم موقعك لتحديد عنوان التوصيل وحساب رسومه"
+      node: 20.19.0
+      xcode: latest
+      cocoapods: default
+    scripts: *ios_scripts
+    artifacts: [native/customer/ios/App/build/ios/ipa/*.ipa, build/ios/ipa/*.ipa]
+
+  ios-family:
+    name: سُفرة للأسر iOS
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      groups: [appstore]
+      vars:
+        APP_DIR: native/family
+        BUNDLE_ID: com.sufrah.family
+        DISPLAY_NAME: "سُفرة للأسر"
+        CAMERA_TEXT: "لتصوير أطباقك ووثائق مطبخك"
+        PHOTOS_TEXT: "لاختيار صور أطباقك من معرضك"
+        LOCATION_TEXT: "نستخدم موقع مطبخك لحساب مسافة التوصيل للعملاء"
+      node: 20.19.0
+      xcode: latest
+      cocoapods: default
+    scripts: *ios_scripts
+    artifacts: [native/family/ios/App/build/ios/ipa/*.ipa, build/ios/ipa/*.ipa]
+
+  android-customer:
+    name: سُفرة Android
+    instance_type: mac_mini_m2
+    max_build_duration: 45
+    environment:
+      groups: [firebase]
+      android_signing: [sufrah_upload]
+      vars:
+        APP_DIR: native/customer
+        GS_VAR: GOOGLE_SERVICES_CUSTOMER_B64
+      node: 20.19.0
+    scripts: *android_scripts
+    artifacts: [native/customer/android/app/build/outputs/bundle/**/*.aab]
+
+  android-family:
+    name: سُفرة للأسر Android
+    instance_type: mac_mini_m2
+    max_build_duration: 45
+    environment:
+      groups: [firebase]
+      android_signing: [sufrah_family_upload]
+      vars:
+        APP_DIR: native/family
+        GS_VAR: GOOGLE_SERVICES_FAMILY_B64
+      node: 20.19.0
+    scripts: *android_scripts
+    artifacts: [native/family/android/app/build/outputs/bundle/**/*.aab]

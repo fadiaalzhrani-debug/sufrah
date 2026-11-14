@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="16" viewBox="0 0 48 16">
+  <!-- نقشة السدو: أسنان (ضروس) فوق وتحت وعين معيّنة بالوسط، تتكرر أفقيًا -->
+  <rect width="48" height="16" fill="#5E0F29"/>
+  <path d="M0 0h48v2H0zM0 14h48v2H0z" fill="#F4E9DD"/>
+  <path d="M0 2l4 3 4-3 4 3 4-3 4 3 4-3 4 3 4-3 4 3 4-3 4 3 4-3v1L44 6l-4-3-4 3-4-3-4 3-4-3-4 3-4-3-4 3-4-3-4 3-4-3-4 3z" fill="#C8323F"/>
+  <path d="M0 14l4-3 4 3 4-3 4 3 4-3 4 3 4-3 4 3 4-3 4 3 4-3 4 3v-1l-4-3-4 3-4-3-4 3-4-3-4 3-4-3-4 3-4-3-4 3-4-3-4 3-4-3z" fill="#C8323F"/>
+  <path d="M12 8l4-3 4 3-4 3z" fill="#F4E9DD"/>
+  <path d="M14 8l2-1.5L18 8l-2 1.5z" fill="#5E0F29"/>
+  <path d="M36 8l4-3 4 3-4 3z" fill="#E9A23B"/>
+  <path d="M38 8l2-1.5L42 8l-2 1.5z" fill="#5E0F29"/>
+  <path d="M0 8h10M22 8h12M46 8h2" stroke="#F4E9DD" stroke-width=".8" stroke-dasharray="1.5 1.5"/>
+</svg>

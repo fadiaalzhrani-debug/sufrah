@@ -1,0 +1,14 @@
+{
+  "appId": "com.sufrah.app",
+  "appName": "سُفرة",
+  "webDir": "www",
+  "server": {
+    "iosScheme": "https",
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    }
+  }
+}
