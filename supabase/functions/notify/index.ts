@@ -2,18 +2,22 @@
 //  سُفرة · notify: يرسل إشعارات sf_notifications للجوالات والمتصفحات
 //  POST /notify {ids:[...]}   ← من القاعدة (sf_hook بمفتاح الخدمة) بعد كل تغيير حالة طلب أو إشعار جماعي
 //  POST /notify/broadcast {id} ← يرسل إشعار جماعي (يقرأ الإشعارات اللي ما انرسلت للجوال بعد)
-//  القنوات: Web Push (VAPID) الحين، و FCM لما ينبنى التطبيق (السر FCM_SERVICE_ACCOUNT)
+//  القنوات: Web Push (VAPID) للمتصفح، APNs للآيفون (الأسرار APNS_*)، FCM لأندرويد (السر FCM_SERVICE_ACCOUNT)
 //  الاشتراك الميت (404/410) ينحذف
 // ============================================================
 import { isServiceBearer, db, json, CORS } from "../_shared/auth.ts";
 import { loadVapid, sendWebPush, type PushSub } from "../_shared/webpush.ts";
 import { fcmReady, fcmSend } from "../_shared/fcm.ts";
+import { apnsReady, apnsSend } from "../_shared/apns.ts";
+
+const TOPIC_APP = Deno.env.get("APNS_BUNDLE_ID") ?? "sa.sufrah.app";
+const TOPIC_FAMILY = Deno.env.get("APNS_BUNDLE_ID_FAMILY") ?? "sa.sufrah.family";
 
 const VAPID_JWK = Deno.env.get("VAPID_JWK") ?? "";
 const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") ?? "https://fadiaalzhrani-debug.github.io/sufrah/";
 
 type Notif = { id: number; user_id: string; title: string; body: string | null; link: string | null; kind: string | null; order_id: string | null };
-type Device = { id: string; user_id: string; kind: string; token: string };
+type Device = { id: string; user_id: string; kind: string; token: string; ua: string | null; apns_env: string | null };
 
 async function deliver(notifs: Notif[]): Promise<Record<string, unknown>> {
   if (!notifs.length) return { sent: 0 };
@@ -21,12 +25,12 @@ async function deliver(notifs: Notif[]): Promise<Record<string, unknown>> {
   const users = [...new Set(notifs.map((n) => n.user_id))];
   const inList = users.map((u) => `"${u}"`).join(",");
   const [devices, staff] = await Promise.all([
-    db(`sf_devices?user_id=in.(${inList})&select=id,user_id,kind,token`) as Promise<Device[]>,
+    db(`sf_devices?user_id=in.(${inList})&select=id,user_id,kind,token,ua,apns_env`) as Promise<Device[]>,
     db(`sf_staff?user_id=in.(${inList})&active=eq.true&select=user_id,role`) as Promise<{ user_id: string; role: string }[]>,
   ]);
   const roleOf = new Map(staff.map((s) => [s.user_id, s.role]));
   let sent = 0, dead = 0, failed = 0;
-  const deadIds: string[] = [], pushed: number[] = [];
+  const deadIds: string[] = [], pushed: number[] = [], envFix: { id: string; env: string }[] = [];
   const jobs: Promise<void>[] = [];
   for (const n of notifs) {
     const role = roleOf.get(n.user_id) || "customer";
@@ -48,7 +52,15 @@ async function deliver(notifs: Notif[]): Promise<Record<string, unknown>> {
             if (st === 404 || st === 410) { deadIds.push(d.id); dead++; }
             else if (st >= 200 && st < 300) { sent++; if (!pushed.includes(n.id)) pushed.push(n.id); }
             else failed++;
-          } else if ((d.kind === "fcm" || d.kind === "apns") && fcmReady()) {
+          } else if (d.kind === "apns") {
+            if (!apnsReady()) return;
+            // أي تطبيق؟ من بصمة الجهاز (native-ios-family) وإلا من دور المستخدم
+            const topic = /family/.test(d.ua || "") || (!/customer/.test(d.ua || "") && isFamily) ? TOPIC_FAMILY : TOPIC_APP;
+            const r = await apnsSend(d.token, topic, payload.title, payload.body, { url: payload.url, tag: payload.tag }, d.apns_env, payload.sticky);
+            if (r.ok) { sent++; if (!pushed.includes(n.id)) pushed.push(n.id); if (d.apns_env !== r.env) envFix.push({ id: d.id, env: r.env }); }
+            else if (r.dead) { deadIds.push(d.id); dead++; }
+            else { failed++; console.error("apns", r.status, r.detail.slice(0, 160)); }
+          } else if (d.kind === "fcm" && fcmReady()) {
             const r = await fcmSend(d.token, payload.title, payload.body, { url: payload.url, tag: payload.tag });
             if (r.status === 404 || /UNREGISTERED|NOT_FOUND|INVALID_ARGUMENT/.test(r.detail)) { deadIds.push(d.id); dead++; }
             else if (r.ok) { sent++; if (!pushed.includes(n.id)) pushed.push(n.id); } else failed++;
@@ -59,15 +71,16 @@ async function deliver(notifs: Notif[]): Promise<Record<string, unknown>> {
   }
   // دفعات متوازية بحد معقول
   for (let i = 0; i < jobs.length; i += 25) await Promise.all(jobs.slice(i, i + 25));
+  for (const f of envFix) await db(`sf_devices?id=eq.${f.id}`, { method: "PATCH", headers: { prefer: "return=minimal" }, body: JSON.stringify({ apns_env: f.env, last_ok: new Date().toISOString() }) }).catch(() => {});
   if (deadIds.length) await db(`sf_devices?id=in.(${deadIds.map((x) => `"${x}"`).join(",")})`, { method: "DELETE", headers: { prefer: "return=minimal" } }).catch(() => {});
   if (pushed.length) await db(`sf_notifications?id=in.(${pushed.join(",")})`, { method: "PATCH", headers: { prefer: "return=minimal" }, body: JSON.stringify({ pushed_at: new Date().toISOString() }) }).catch(() => {});
-  return { notifs: notifs.length, devices: devices.length, sent, dead, failed, vapid: !!vapid };
+  return { notifs: notifs.length, devices: devices.length, sent, dead, failed, vapid: !!vapid, apns: apnsReady() };
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
   const url = new URL(req.url);
-  if (req.method === "GET" && url.pathname.endsWith("/health")) return json({ ok: true, vapid: !!VAPID_JWK, fcm: fcmReady() });
+  if (req.method === "GET" && url.pathname.endsWith("/health")) return json({ ok: true, vapid: !!VAPID_JWK, fcm: fcmReady(), apns: apnsReady() });
   if (req.method !== "POST") return json({ error: "method" }, 405);
   if (!(await isServiceBearer(req))) return json({ error: "forbidden" }, 401);
   let b: any = {};

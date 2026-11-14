@@ -342,7 +342,7 @@
       PN.addListener('registration', async (tok) => {
         if (done) return; done = true;
         const kind = window.Capacitor.getPlatform() === 'ios' ? 'apns' : 'fcm';
-        try { await rpc('sf_device_register', { p_kind: kind, p_token: tok.value, p_ua: 'native-' + window.Capacitor.getPlatform() }); resolve({ ok: true }); }
+        try { await rpc('sf_device_register', { p_kind: kind, p_token: tok.value, p_ua: 'native-' + window.Capacitor.getPlatform() + '-' + (document.querySelector('script[src*="family.js"]') ? 'family' : 'customer') }); resolve({ ok: true }); }
         catch { resolve({ ok: false, why: 'save' }); }
       });
       PN.addListener('registrationError', () => { if (!done) { done = true; resolve({ ok: false, why: 'register' }); } });
