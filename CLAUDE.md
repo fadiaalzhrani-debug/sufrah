@@ -36,3 +36,7 @@
 
 ## لو احترت
 اسأل فادية، وأضف القرار هنا بتاريخه.
+
+## إشعارات الآيفون (2026-11-14)
+- الآيفون يستلم عبر APNs مباشرة بلا Firebase: `supabase/functions/_shared/apns.ts` داخل دالة `notify`. الأسرار APNS_KEY_ID وAPNS_TEAM_ID وAPNS_KEY_JWK (مفتاح فريق آبل نفسه حق خافت، يشتغل لكل تطبيقات الفريق) وAPNS_BUNDLE_ID وAPNS_BUNDLE_ID_FAMILY. الموضوع يتحدد من بصمة الجهاز `native-ios-family`/`native-ios-customer` (core.js) وإلا من دور المستخدم. البيئة الصحيحة تُحفظ في `sf_devices.apns_env` (`supabase/140_apns.sql`).
+- Firebase لازم فقط لأندرويد (لما ننشر على Play).
