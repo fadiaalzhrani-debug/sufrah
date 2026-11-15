@@ -134,7 +134,7 @@ workflows:
       vars:
         APP_DIR: native/customer
         BUNDLE_ID: sa.sufrah.app
-        DISPLAY_NAME: "سُفرة"
+        DISPLAY_NAME: "سفرة بيتنا"
         CAMERA_TEXT: "لتصوير الطلب وإرفاق صورة مع تقييمك أو شكواك"
         PHOTOS_TEXT: "لاختيار صورة من معرضك ترفقها مع تقييمك أو شكواك"
         LOCATION_TEXT: "نستخدم موقعك لتحديد عنوان التوصيل وحساب رسومه"

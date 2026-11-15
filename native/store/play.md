@@ -4,7 +4,7 @@
 مفتاحا التوقيع في `Downloads/codemagic-sufrah/` (المرجعان في Codemagic: `sufrah_upload` و`sufrah_family_upload`، كلمات المرور في keystores.txt هناك، لا تُنسخ هنا).
 
 ## 1) سُفرة (العملاء) · sa.sufrah.app
-- الاسم: سُفرة للأكل البيتي
+- الاسم: سفرة بيتنا (كان: سُفرة للأكل البيتي، غيّرته فادية 2026-11-15)
 - الوصف القصير (80 حرفًا): أكل بيت طازج من الأسر المنتجة في الشرقية، توصيل أو استلام
 - الوصف الكامل: نفس وصف آبل في listing.md (عربي، ثم السطر الإنجليزي)
 - الفئة: الطعام والشراب · مجاني · بدون إعلانات
@@ -28,3 +28,20 @@
 2. Firebase: مشروع جديد «Sufrah» (منفصل عن خافت) فيه تطبيقا أندرويد sa.sufrah.app وsa.sufrah.family ← google-services.json لكل واحد (Base64 في مجموعة `firebase` بـCodemagic: GOOGLE_SERVICES_CUSTOMER_B64 وGOOGLE_SERVICES_FAMILY_B64) + مفتاح حساب خدمة ← سر Supabase `FCM_SERVICE_ACCOUNT`.
 3. بناية «سُفرة Android» ثم «سُفرة للأسر Android» ← تنزيل AAB.
 4. Play Console: إنشاء التطبيقين، البيانات والصور، الإصدار على الإنتاج (السعودية)، إرسال للمراجعة.
+
+## الحالة 2026-11-14 (مساءً)
+- Firebase: مشروع جديد منفصل `sufrah-d820d` (حساب فادية) فيه sa.sufrah.app وsa.sufrah.family؛ google-services.json مشترك للاثنين في Downloads/codemagic-sufrah/google-services-sufrah.json (وB64 جاهز)، وحساب الخدمة سر Supabase FCM_SERVICE_ACCOUNT (health: fcm=true).
+- Play Console: التطبيقان أُنشئا: العملاء app id 4975475009785262903، الأسر 4976260840536723513. كل بيانات الإعداد (11/11) مكتملة للاثنين: خصوصية، وصول للمراجعة، إعلانات، جمهور 18+، تصنيف IARC (3+/للجميع)، أمان البيانات، حكومي/مالي/صحة/معرّف إعلاني، الفئة (مطاعم ومقاهي / أعمال)، جهة الاتصال، وبطاقة المتجر بالصور.
+- الباقي: مفاتيح التوقيع ومتغيّرات firebase في Codemagic (فادية)، ثم بناية Android لكل تطبيق، ثم إصدار الإنتاج (السعودية) والإرسال للمراجعة.
+
+## 2026-11-15 صباحًا
+- آبل: الإصدار 1.0 للتطبيقين REJECTED (reviewSubmission = UNRESOLVED_ISSUES، submitted 2026-11-14). السبب غير متاح عبر API؛ يُقرأ من App Store Connect (يحتاج دخول فادية في كروم) أو من بريد الرفض.
+- سوبابيس: دخلت المنظمة Fadia Free (pnmisvsbdveddfbuwxlj)، نافذة Upgrade to Pro مفتوحة في كروم وتطلب بطاقة (ما فيه وسيلة دفع). اليوم 25$، التقدير الشهري 35$ لأن المنظمة فيها 3 مشاريع.
+- Codemagic: ما زال ينتظر رفع keystores + متغيرات firebase من فادية.
+- (لاحقًا 2026-11-15) سبب رفض آبل للاثنين: Guideline 2.1 Information Needed (تسجيل شاشة من جهاز حقيقي + وصف الغرض والخدمات والمناطق في Notes). كتبت Notes كاملة بالإنجليزي عبر API للتطبيقين (reviewDetail d74151af للعميل، 27e82d17 للأسر) وبقي سطر VIDEO LINK. أنشأت مجموعة TestFlight داخلية «Internal» لكل تطبيق (da91969c عميل، 5fa58ddf أسر) وفادية مدعوّة مختبرًا. بعد وصول الفيديوهات: إرفاقها كـ appStoreReviewAttachments أو رابط، ثم resubmit (الإصدار 1.0 نفسه، البناء 1).
+- الاسم الجديد لتطبيق العملاء «سفرة بيتنا» (en: Sufrah Baytna): مطبّق في App Store (appInfoLocalization) وفي بطاقة Play (الاسم + الصورة المميزة الجديدة) وفي codemagic.yaml DISPLAY_NAME وindex.html (محليًا، يحتاج بناء iOS/Android جديد ليتغيّر اسم الأيقونة). الأسر باقٍ «سُفرة للأسر».
+- سوبابيس: Fadia Free صارت Pro، وSufrah على Micro.
+
+## 2026-11-15 مساءً
+- Codemagic: أضفت مجموعة `firebase` بالمتغيرين GOOGLE_SERVICES_CUSTOMER_B64 وGOOGLE_SERVICES_FAMILY_B64 (نفس القيمة، ملف واحد فيه التطبيقين) في إعدادات تطبيق sufrah. ما زال ينقص رفع مفتاحي التوقيع (sufrah_upload وsufrah_family_upload) من فادية: Settings ← Code signing identities ← Android keystores؛ ملفات الرفع لا تُرفع تلقائيًا من Claude.
+- صفحة انضمام الأسر حيّة: https://fadiaalzhrani-debug.github.io/sufrah/join.html ، ورسالة الدعوة في `_tools/families-invite.md`.
