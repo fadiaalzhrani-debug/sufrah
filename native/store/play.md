@@ -45,3 +45,4 @@
 ## 2026-11-15 مساءً
 - Codemagic: أضفت مجموعة `firebase` بالمتغيرين GOOGLE_SERVICES_CUSTOMER_B64 وGOOGLE_SERVICES_FAMILY_B64 (نفس القيمة، ملف واحد فيه التطبيقين) في إعدادات تطبيق sufrah. ما زال ينقص رفع مفتاحي التوقيع (sufrah_upload وsufrah_family_upload) من فادية: Settings ← Code signing identities ← Android keystores؛ ملفات الرفع لا تُرفع تلقائيًا من Claude.
 - صفحة انضمام الأسر حيّة: https://fadiaalzhrani-debug.github.io/sufrah/join.html ، ورسالة الدعوة في `_tools/families-invite.md`.
+- 2026-11-15 18:11 (بعد «ارفع»): رُفع a8f1e0f (DISPLAY_NAME وappName «سفرة بيتنا» للعملاء + عنوان index.html + أصول Play). فادية رفعت مفتاحي التوقيع في Codemagic. بدأت بنايتا أندرويد: العملاء 6af9cba690e83b09c4fa9c6a والأسر 6af9cbd090e83b09c4fa9c7a (versionCode = رقم البناء + 1000، versionName 1.0.0). التالي: تنزيل AAB وإنشاء إصدار إنتاج في Play للتطبيقين.

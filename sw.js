@@ -2,7 +2,7 @@
    - الصفحات: الشبكة أول (عشان التحديثات توصل فورًا) وبدونها النسخة المحفوظة
    - الملفات الثابتة: المحفوظ أول مع تحديث بالخلفية
    - الإشعارات: يعرض الإشعار من الحمولة، والضغط يفتح الرابط */
-const CACHE = 'sufrah-202611151508';
+const CACHE = 'sufrah-202611151533';
 const CORE = ['./', 'index.html', 'family.html', 'admin.html', 'css/sufrah.css', 'js/core.js', 'js/config.js', 'img/mark.svg', 'img/sadu.svg', 'manifest.json'];
 
 self.addEventListener('install', (e) => {
